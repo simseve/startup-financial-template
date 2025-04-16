@@ -912,10 +912,8 @@ with tab1:
         st.pyplot(fig)
 
         # Add footer text
-        st.markdown('<div style="text-align:center; padding:5px; background-color:#FFDEDE; color:#880000; border:1px solid red; margin-bottom:10px">Without an NDA at this stage, do not share competitive information.</div>', unsafe_allow_html=True)
-        st.caption("Source: Gartner")
         st.caption(
-            "EBITDA = earnings before interest, taxes, depreciation and amortization; M = millions; NDA = nondisclosure agreement")
+            "EBITDA = earnings before interest, taxes, depreciation and amortization; M = millions;")
 
     with col2:
         st.subheader("Key Metrics")
