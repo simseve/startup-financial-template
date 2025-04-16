@@ -616,12 +616,13 @@ def generate_financial_model():
             current_headcount_dev * current_salary_dev * (1 + benefits_multiplier)) / 12
         monthly_dev_tools = (current_headcount_dev * dev_tools_per_dev) / 12
 
-        # Total COGS including development costs
-        monthly_cogs = base_monthly_cogs + monthly_salary_dev + monthly_dev_tools
-
         # Apply efficiency to all dev costs within COGS
         monthly_salary_dev *= efficiency_multiplier
         monthly_dev_tools *= efficiency_multiplier
+
+        # Total COGS including development costs
+        monthly_cogs = base_monthly_cogs + monthly_salary_dev + monthly_dev_tools
+
 
         # 2. Remaining employee costs by department (excluding development)
         monthly_salary_sales = (
