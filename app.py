@@ -608,12 +608,22 @@ def generate_financial_model():
             efficiency_multiplier = 1.0 - efficiency_y3
 
         # Calculate detailed expenses
-        # 1. COGS
-        monthly_cogs = monthly_rev * cogs_percent
+        # 1. COGS (now including development costs)
+        base_monthly_cogs = monthly_rev * cogs_percent
 
-        # 2. Employee costs by department
+        # Development costs (now part of COGS)
         monthly_salary_dev = (
             current_headcount_dev * current_salary_dev * (1 + benefits_multiplier)) / 12
+        monthly_dev_tools = (current_headcount_dev * dev_tools_per_dev) / 12
+
+        # Total COGS including development costs
+        monthly_cogs = base_monthly_cogs + monthly_salary_dev + monthly_dev_tools
+
+        # Apply efficiency to all dev costs within COGS
+        monthly_salary_dev *= efficiency_multiplier
+        monthly_dev_tools *= efficiency_multiplier
+
+        # 2. Remaining employee costs by department (excluding development)
         monthly_salary_sales = (
             current_headcount_sales * current_salary_sales * (1 + benefits_multiplier)) / 12
         monthly_salary_ops = (
@@ -622,7 +632,6 @@ def generate_financial_model():
                              current_salary_ga * (1 + benefits_multiplier)) / 12
 
         # Apply efficiency to salary costs
-        monthly_salary_dev *= efficiency_multiplier
         monthly_salary_sales *= efficiency_multiplier
         monthly_salary_ops *= efficiency_multiplier
         monthly_salary_ga *= efficiency_multiplier
@@ -630,9 +639,6 @@ def generate_financial_model():
         # 3. Non-salary expenses
         # Marketing (non-salary)
         monthly_marketing = monthly_rev * marketing_percent
-
-        # Development tools
-        monthly_dev_tools = (current_headcount_dev * dev_tools_per_dev) / 12
 
         # Cloud infrastructure
         monthly_cloud = cloud_fixed_monthly + \
@@ -646,7 +652,6 @@ def generate_financial_model():
 
         # Apply efficiency to non-salary costs
         monthly_marketing *= efficiency_multiplier
-        monthly_dev_tools *= efficiency_multiplier
         monthly_cloud *= efficiency_multiplier
         monthly_office *= efficiency_multiplier
         monthly_ga *= efficiency_multiplier
@@ -654,8 +659,8 @@ def generate_financial_model():
         # Total expenses
         monthly_total_expenses = (
             monthly_cogs +
-            monthly_salary_dev + monthly_salary_sales + monthly_salary_ops + monthly_salary_ga +
-            monthly_marketing + monthly_dev_tools +
+            monthly_salary_sales + monthly_salary_ops + monthly_salary_ga +
+            monthly_marketing +
             monthly_cloud + monthly_office + monthly_ga
         )
 
@@ -805,14 +810,15 @@ def generate_financial_model():
 
     chart_df = pd.DataFrame(chart_data)
 
-    # Create department breakdown data
+    # Create department breakdown data - with development costs included in COGS
     department_data = []
 
     for _, row in annual_df.iterrows():
+        # Note: Development costs are now part of COGS
         department_data.append({
             'year': row['year'],
-            'cogs': round(row['annual_cogs'] / 1000000, 1),
-            'development': round(row['annual_dev_total'] / 1000000, 1),
+            # COGS now includes development costs
+            'cogs': round((row['annual_cogs']) / 1000000, 1),
             'sales_marketing': round(row['annual_sales_total'] / 1000000, 1),
             'operations': round(row['annual_ops_total'] / 1000000, 1),
             'g_and_a': round(row['annual_ga_total'] / 1000000, 1),
@@ -1104,7 +1110,6 @@ with tab3:
     display_dept = display_dept.rename(columns={
         'year': 'Year',
         'cogs': 'COGS ($M)',
-        'development': 'Development ($M)',
         'sales_marketing': 'Sales & Marketing ($M)',
         'operations': 'Operations ($M)',
         'g_and_a': 'G&A ($M)',
@@ -1118,7 +1123,7 @@ with tab3:
     # Display as a styled table
     st.dataframe(display_dept, use_container_width=True)
 
-    # Create department visualization
+    # Create department visualization with development costs included in COGS
     fig, ax = plt.subplots(figsize=(12, 7))
 
     x = display_dept['Year']
@@ -1127,20 +1132,15 @@ with tab3:
     # Create stacked bar chart
     bottoms = np.zeros(len(display_dept))
 
-    # COGS
+    # COGS (now includes development costs)
     cogs_bars = ax.bar(
-        x, display_dept['COGS ($M)'], width, label='COGS', color='#e74c3c')
+        x, display_dept['COGS ($M)'], width, label='COGS (incl. Development)', color='#e74c3c')
     bottoms += display_dept['COGS ($M)']
 
     # Sales & Marketing
     sales_bars = ax.bar(x, display_dept['Sales & Marketing ($M)'], width,
                         bottom=bottoms, label='Sales & Marketing', color='#3498db')
     bottoms += display_dept['Sales & Marketing ($M)']
-
-    # Development
-    dev_bars = ax.bar(x, display_dept['Development ($M)'], width,
-                      bottom=bottoms, label='Development', color='#2ecc71')
-    bottoms += display_dept['Development ($M)']
 
     # Operations
     ops_bars = ax.bar(x, display_dept['Operations ($M)'], width,
@@ -1164,7 +1164,7 @@ with tab3:
     for i, year_data in enumerate(display_dept.iterrows()):
         _, row = year_data
         total_height = row['COGS ($M)'] + row['Sales & Marketing ($M)'] + \
-            row['Development ($M)'] + row['Operations ($M)'] + row['G&A ($M)']
+            row['Operations ($M)'] + row['G&A ($M)']
         ax.text(row['Year'], total_height + 0.5,
                 f"Total HC: {row['Total HC']}", ha='center', fontweight='bold')
 

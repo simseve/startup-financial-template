@@ -3,7 +3,7 @@ initial_funding,20000000.0
 start_year,2025.0
 initial_acv,57000.0
 acv_growth_rate,0.2
-initial_customers,6.0
+initial_customers,10.0
 cust_growth_y1,0.1
 cust_growth_y2_y3,0.075
 cust_growth_y4_plus,0.04
