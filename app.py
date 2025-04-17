@@ -43,9 +43,9 @@ def run_integrated_financial_model(initial_investment=20000000):
 
         # Initial customer count by segment
         'initial_customers': {
-            'Enterprise': 5,
-            'Mid-Market': 20,
-            'SMB': 50,
+            'Enterprise': 2,
+            'Mid-Market': 1,
+            'SMB': 2,
         },
 
         # Contract length in years by segment
@@ -133,17 +133,17 @@ def run_integrated_financial_model(initial_investment=20000000):
 
         # COGS Assumptions (% of ARR)
         'cogs': {
-            'cloud_hosting': 0.18,  # 18% - higher for AI compute
-            'customer_support': 0.08,  # 8% for support
-            'third_party_apis': 0.06,  # 6% for third-party AI/ML APIs
-            'professional_services': 0.03,  # 3% for PS delivery
+            'cloud_hosting': 0.0,  # 18% - higher for AI compute
+            'customer_support': 0.0,  # 8% for support
+            'third_party_apis': 0.0,  # 6% for third-party AI/ML APIs
+            'professional_services': 0.0,  # 3% for PS delivery
         },
 
         # Headcount Assumptions (starting headcount, with growth factors)
         'headcount': {
             # Engineering including ML/AI specialists
             'engineering': {
-                'starting_count': 15,  # Higher engineering count for AI company
+                'starting_count': 5,  # Higher engineering count for AI company
                 'growth_type': 'step',
                 'growth_factors': {
                     1: 1.0,  # Year 1: No change
@@ -153,11 +153,11 @@ def run_integrated_financial_model(initial_investment=20000000):
                     5: 1.2,  # Year 5: 20% growth
                     6: 1.15,  # Year 6: 15% growth
                 },
-                'avg_salary': 160000,  # Higher for AI engineers
+                'avg_salary': 100000,  # Higher for AI engineers
             },
             # Product Management
             'product': {
-                'starting_count': 4,
+                'starting_count': 1,
                 'growth_type': 'step',
                 'growth_factors': {
                     1: 1.0,
@@ -167,11 +167,11 @@ def run_integrated_financial_model(initial_investment=20000000):
                     5: 1.2,
                     6: 1.1,
                 },
-                'avg_salary': 150000,
+                'avg_salary': 130000,
             },
             # Sales team
             'sales': {
-                'starting_count': 6,
+                'starting_count': 2,
                 'growth_type': 'step',
                 'growth_factors': {
                     1: 1.5,  # Sales grows faster early
@@ -186,7 +186,7 @@ def run_integrated_financial_model(initial_investment=20000000):
             },
             # Marketing team
             'marketing': {
-                'starting_count': 5,
+                'starting_count': 1,
                 'growth_type': 'step',
                 'growth_factors': {
                     1: 1.4,
@@ -196,11 +196,11 @@ def run_integrated_financial_model(initial_investment=20000000):
                     5: 1.15,
                     6: 1.1,
                 },
-                'avg_salary': 120000,
+                'avg_salary': 60000,
             },
             # Customer success/support
             'customer_success': {
-                'starting_count': 4,
+                'starting_count': 0,
                 'growth_type': 'step',
                 'growth_factors': {
                     1: 1.3,
@@ -214,7 +214,7 @@ def run_integrated_financial_model(initial_investment=20000000):
             },
             # G&A (General and Administrative)
             'g_and_a': {
-                'starting_count': 3,
+                'starting_count': 2,
                 'growth_type': 'step',
                 'growth_factors': {
                     1: 1.0,
@@ -224,11 +224,11 @@ def run_integrated_financial_model(initial_investment=20000000):
                     5: 1.1,
                     6: 1.1,
                 },
-                'avg_salary': 110000,
+                'avg_salary': 80000,
             },
             # Research team (specific to AI company)
             'research': {
-                'starting_count': 5,
+                'starting_count': 1,
                 'growth_type': 'step',
                 'growth_factors': {
                     1: 1.2,
@@ -238,17 +238,17 @@ def run_integrated_financial_model(initial_investment=20000000):
                     5: 1.2,
                     6: 1.1,
                 },
-                'avg_salary': 180000,  # Higher for AI researchers
+                'avg_salary': 150000,  # Higher for AI researchers
             },
         },
 
         # Salary & Benefits Assumptions
         'salary': {
             'annual_increase': 0.04,  # 4% annual salary increase
-            'benefits_multiplier': 1.28,  # Benefits are 28% of base salary
+            'benefits_multiplier': 1.01,  # Benefits are 28% of base salary
             'payroll_tax_rate': 0.08,  # 8% payroll taxes
-            'bonus_rate': 0.12,  # 12% annual bonus (higher for tech)
-            'equity_compensation': 0.18,  # 18% of salary as equity comp
+            'bonus_rate': 0.0,  # 12% annual bonus (higher for tech)
+            'equity_compensation': 0.0,  # 18% of salary as equity comp
         },
 
         # Marketing & Other Expenses
@@ -272,7 +272,7 @@ def run_integrated_financial_model(initial_investment=20000000):
 
         # Sales expenses
         'sales_expenses': {
-            'commission_rate': 0.12,  # 12% commission on new ARR
+            'commission_rate': 0.0,  # 12% commission on new ARR
             'tools_and_enablement': 0.03,  # 3% of ARR
         },
 
@@ -285,24 +285,24 @@ def run_integrated_financial_model(initial_investment=20000000):
 
         # General & Admin expenses
         'g_and_a_expenses': {
-            'office_and_facilities': 12000,  # Per month base cost
-            'per_employee_office_cost': 600,  # Per employee per month
-            'software_and_tools': 350,  # Per employee per month
-            'legal_and_accounting': 25000,  # Per month base cost
-            'insurance': 7000,  # Per month base cost
+            'office_and_facilities': 0,  # Per month base cost
+            'per_employee_office_cost': 0,  # Per employee per month
+            'software_and_tools': 0,  # Per employee per month
+            'legal_and_accounting': 0,  # Per month base cost
+            'insurance': 0,  # Per month base cost
         },
 
         # One-time and periodic expenses
         'one_time_expenses': {
             # Format: [month_idx, category, amount, description]
             'items': [
-                [3, 'office', 120000, 'Office setup and expansion'],
-                [15, 'software', 60000, 'Enterprise software licenses'],
-                [17, 'research', 150000, 'Major AI model training run'],
-                [27, 'legal', 100000, 'IP protection and legal work'],
-                [36, 'office', 200000, 'New office location setup'],
-                [41, 'research', 300000, 'Advanced AI model development'],
-                [48, 'infrastructure', 250000, 'Major infrastructure upgrade'],
+                [3, 'office', 0, 'Office setup and expansion'],
+                [15, 'software', 0, 'Enterprise software licenses'],
+                [17, 'research', 0, 'Major AI model training run'],
+                [27, 'legal', 0, 'IP protection and legal work'],
+                [36, 'office', 0, 'New office location setup'],
+                [41, 'research', 0, 'Advanced AI model development'],
+                [48, 'infrastructure', 0, 'Major infrastructure upgrade'],
             ]
         }
     }
