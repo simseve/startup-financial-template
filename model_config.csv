@@ -55,3 +55,4 @@ efficiency_y4_plus,0.08
 sme_initial_customers,1.0
 sme_arr_growth_rate,0.23
 enterprise_arr_growth_rate,0.21
+sme_initial_arr,25000.0
