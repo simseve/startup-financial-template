@@ -465,9 +465,22 @@ class SaaSFinancialModel:
                      height + 0.3 if height > 0 else height - 1.5,
                      f'{sign}${ebitda[i]:.0f}M', ha='center', va='bottom')
 
-        # Add customer count labels
+        # Add customer count labels with improved positioning and styling
         for i, y in enumerate(customers):
-            ax2.text(years[i], y + 5, f'{int(y)}', ha='center', va='bottom')
+            # Create a text box with customer count
+            # Position the label higher above the data point with more padding
+            # Add a white background with border to make it stand out
+            ax2.annotate(f'{int(y):,}', 
+                         xy=(years[i], y),
+                         xytext=(0, 15),  # Vertical offset from the data point
+                         textcoords='offset points',
+                         ha='center',
+                         va='bottom',
+                         bbox=dict(boxstyle="round,pad=0.3", 
+                                   fc='white', 
+                                   ec='#FF6B6B', 
+                                   alpha=0.8),
+                         fontsize=9)  # Smaller font size
 
         # Combine legends
         lines1, labels1 = ax1.get_legend_handles_labels()
