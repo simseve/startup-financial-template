@@ -53,6 +53,11 @@ def load_config():
             'enterprise_initial_arr': 120000,
             'startup_initial_arr': 15000,
 
+            # Contract length by segment (in years)
+            'sme_contract_length': 1.0,
+            'enterprise_contract_length': 2.0,
+            'startup_contract_length': 1.0,
+
             # ARR growth rates by segment
             'sme_arr_growth_rate': 0.15,
             'enterprise_arr_growth_rate': 0.20,
@@ -243,6 +248,19 @@ with st.sidebar.expander("Revenue & Customer Segments", expanded=True):
         update_config_value('sme_arr_growth_rate',
                             st.session_state.sme_arr_growth_rate)
 
+    sme_contract_length = st.slider(
+        "SME Contract Length (years)",
+        min_value=1.0,
+        max_value=3.0,
+        value=float(config.get('sme_contract_length', 1.0)),
+        step=0.5,
+        format="%.1f",
+        key="sme_contract_length"
+    )
+    if st.session_state.sme_contract_length != float(config.get('sme_contract_length', 1.0)):
+        update_config_value('sme_contract_length',
+                            st.session_state.sme_contract_length)
+
     # Enterprise segment
     st.subheader("Enterprise Segment")
     enterprise_initial_arr = st.number_input(
@@ -280,6 +298,19 @@ with st.sidebar.expander("Revenue & Customer Segments", expanded=True):
         update_config_value('enterprise_arr_growth_rate',
                             st.session_state.enterprise_arr_growth_rate)
 
+    enterprise_contract_length = st.slider(
+        "Enterprise Contract Length (years)",
+        min_value=1.0,
+        max_value=3.0,
+        value=float(config.get('enterprise_contract_length', 2.0)),
+        step=0.5,
+        format="%.1f",
+        key="enterprise_contract_length"
+    )
+    if st.session_state.enterprise_contract_length != float(config.get('enterprise_contract_length', 2.0)):
+        update_config_value('enterprise_contract_length',
+                            st.session_state.enterprise_contract_length)
+
     # Startup segment
     st.subheader("Startup Segment")
     startup_initial_arr = st.number_input(
@@ -316,6 +347,19 @@ with st.sidebar.expander("Revenue & Customer Segments", expanded=True):
     if st.session_state.startup_arr_growth_rate != float(config.get('startup_arr_growth_rate', 0.25)):
         update_config_value('startup_arr_growth_rate',
                             st.session_state.startup_arr_growth_rate)
+
+    startup_contract_length = st.slider(
+        "Startup Contract Length (years)",
+        min_value=1.0,
+        max_value=3.0,
+        value=float(config.get('startup_contract_length', 1.0)),
+        step=0.5,
+        format="%.1f",
+        key="startup_contract_length"
+    )
+    if st.session_state.startup_contract_length != float(config.get('startup_contract_length', 1.0)):
+        update_config_value('startup_contract_length',
+                            st.session_state.startup_contract_length)
 
     # Professional Services section
     st.subheader("Professional Services")
@@ -355,6 +399,62 @@ with st.sidebar.expander("Revenue & Customer Segments", expanded=True):
     )
     if st.session_state.ps_growth_rate != float(config.get('ps_growth_rate', 0.10)):
         update_config_value('ps_growth_rate', st.session_state.ps_growth_rate)
+
+# Add exponential growth factors
+with st.sidebar.expander("Customer Growth Curve", expanded=True):
+    st.markdown("### Exponential Growth Curve Parameters")
+    st.markdown("Control how customer acquisition accelerates during each year")
+
+    growth_curve_steepness = st.slider(
+        "Growth Curve Steepness",
+        min_value=0.5,
+        max_value=3.0,
+        value=float(config.get('growth_curve_steepness', 2.0)),
+        step=0.1,
+        format="%.1f",
+        key="growth_curve_steepness",
+        help="Higher values create a steeper S-curve where growth accelerates more strongly later in the year"
+    )
+    if st.session_state.get('growth_curve_steepness') != float(config.get('growth_curve_steepness', 2.0)):
+        update_config_value('growth_curve_steepness', growth_curve_steepness)
+
+    # Adjustments for each customer segment
+    st.markdown("#### Segment-specific adjustments")
+    sme_curve_factor = st.slider(
+        "SME Growth Curve Factor",
+        min_value=0.5,
+        max_value=2.0,
+        value=float(config.get('sme_curve_factor', 1.0)),
+        step=0.1,
+        format="%.1f",
+        key="sme_curve_factor"
+    )
+    if st.session_state.get('sme_curve_factor') != float(config.get('sme_curve_factor', 1.0)):
+        update_config_value('sme_curve_factor', sme_curve_factor)
+
+    enterprise_curve_factor = st.slider(
+        "Enterprise Growth Curve Factor",
+        min_value=0.5,
+        max_value=2.0,
+        value=float(config.get('enterprise_curve_factor', 1.0)),
+        step=0.1,
+        format="%.1f",
+        key="enterprise_curve_factor"
+    )
+    if st.session_state.get('enterprise_curve_factor') != float(config.get('enterprise_curve_factor', 1.0)):
+        update_config_value('enterprise_curve_factor', enterprise_curve_factor)
+
+    startup_curve_factor = st.slider(
+        "Startup Growth Curve Factor",
+        min_value=0.5,
+        max_value=2.0,
+        value=float(config.get('startup_curve_factor', 1.0)),
+        step=0.1,
+        format="%.1f",
+        key="startup_curve_factor"
+    )
+    if st.session_state.get('startup_curve_factor') != float(config.get('startup_curve_factor', 1.0)):
+        update_config_value('startup_curve_factor', startup_curve_factor)
 
 # COGS parameters
 with st.sidebar.expander("COGS Assumptions", expanded=False):
@@ -415,9 +515,9 @@ with st.sidebar.expander("Headcount Assumptions", expanded=True):
     hc_sales_initial = st.number_input("Sales & Marketing", value=int(
         config['hc_sales_initial']), step=1, format="%d")
     # Combining Operations + G&A into SG&A
-    hc_ops_initial = st.number_input("Operations", value=int(
+    hc_ops_initial = st.number_input("Operations (part of SG&A)", value=int(
         config['hc_ops_initial']), step=1, format="%d")
-    hc_ga_initial = st.number_input("SG&A", value=int(
+    hc_ga_initial = st.number_input("G&A (part of SG&A)", value=int(
         config['hc_ga_initial']), step=1, format="%d")
 
     # Calculate and display total
@@ -787,22 +887,68 @@ def generate_financial_model():
             ops_growth_rate = hc_growth_ops_y4_plus
             ga_growth_rate = hc_growth_ga_y4_plus
 
-        # Calculate customer movement for each segment
-        # SME segment
+        # Calculate customer movement for each segment with exponential growth curve
+        # Apply a multiplier based on where we are in the year progression to model
+        # exponential growth (slow start, accelerating in following years)
+
+        # Get curve parameters from config
+        growth_curve_steepness = config.get('growth_curve_steepness', 2.0)
+        sme_curve_factor = config.get('sme_curve_factor', 1.0)
+        enterprise_curve_factor = config.get('enterprise_curve_factor', 1.0)
+        startup_curve_factor = config.get('startup_curve_factor', 1.0)
+
+        # Calculate year progression (0 to 1 scale within each year)
+        year_progression = (month % 12) / 12
+
+        # SME segment with exponential growth pattern
+        # Start slow in early months of each year, accelerate later
+        # Apply user-configurable curve steepness and segment factor
+        sme_growth_multiplier = 0.5 + \
+            (year_progression ** growth_curve_steepness) * 1.5 * sme_curve_factor
         new_sme_customers = max(
-            1, round(current_sme_customers * sme_customer_growth_rate / 12))
+            1, round(current_sme_customers * sme_customer_growth_rate * sme_growth_multiplier / 12))
 
-        # Enterprise segment
+        # Enterprise segment - apply user-configurable curve steepness and segment factor
+        enterprise_growth_multiplier = 0.3 + \
+            (year_progression ** (growth_curve_steepness * 1.2)) * \
+            2.1 * enterprise_curve_factor
         new_enterprise_customers = max(
-            0, round(current_enterprise_customers * enterprise_customer_growth_rate / 12))
+            0, round(current_enterprise_customers * enterprise_customer_growth_rate * enterprise_growth_multiplier / 12))
 
-        # Startup segment
+        # Startup segment - apply user-configurable curve steepness and segment factor
+        startup_growth_multiplier = 0.7 + \
+            (year_progression ** (growth_curve_steepness * 0.8)) * \
+            1.2 * startup_curve_factor
         new_startup_customers = max(
-            0, round(current_startup_customers * startup_customer_growth_rate / 12))
+            0, round(current_startup_customers * startup_customer_growth_rate * startup_growth_multiplier / 12))
 
-        # Handle customer churn - no churn in year 1 due to annual contracts
+        # Handle customer churn based on contract length
+        # Get contract lengths for each segment (in years)
+        sme_contract_length = config.get('sme_contract_length', 1.0)
+        enterprise_contract_length = config.get(
+            'enterprise_contract_length', 2.0)
+        startup_contract_length = config.get('startup_contract_length', 1.0)
+
+        # Convert contract length to months for calculation
+        sme_contract_months = int(sme_contract_length * 12)
+        enterprise_contract_months = int(enterprise_contract_length * 12)
+        startup_contract_months = int(startup_contract_length * 12)
+
+        # Determine if we're in a churn-eligible month based on contract length
+        # This simulates customers only being able to churn when their contract is up for renewal
+        current_month = month + 1  # 1-based for clarity
+
+        # For SME segment
+        is_sme_churn_month = (current_month % sme_contract_months == 0)
+        # For Enterprise segment
+        is_enterprise_churn_month = (
+            current_month % enterprise_contract_months == 0)
+        # For Startup segment
+        is_startup_churn_month = (current_month % startup_contract_months == 0)
+
+        # Apply churn only in eligible months, with no churn in year 1
         if year == 1:
-            # No churn in first year due to annual contracts
+            # No churn in first year
             monthly_sme_churn_rate = 0
             monthly_enterprise_churn_rate = 0
             monthly_startup_churn_rate = 0
@@ -810,16 +956,31 @@ def generate_financial_model():
             churned_enterprise_customers = 0
             churned_startup_customers = 0
         else:
-            # Apply normal churn rates for year 2+
-            monthly_sme_churn_rate = sme_churn_rate / 12
-            monthly_enterprise_churn_rate = enterprise_churn_rate / 12
-            monthly_startup_churn_rate = startup_churn_rate / 12
-            churned_sme_customers = round(
-                current_sme_customers * monthly_sme_churn_rate)
-            churned_enterprise_customers = round(
-                current_enterprise_customers * monthly_enterprise_churn_rate)
-            churned_startup_customers = round(
-                current_startup_customers * monthly_startup_churn_rate)
+            # Apply normalized churn rates for eligible months
+            # We multiply by contract length to concentrate the churn in specific months
+            if is_sme_churn_month:
+                monthly_sme_churn_rate = sme_churn_rate * sme_contract_length
+                churned_sme_customers = round(
+                    current_sme_customers * monthly_sme_churn_rate)
+            else:
+                monthly_sme_churn_rate = 0
+                churned_sme_customers = 0
+
+            if is_enterprise_churn_month:
+                monthly_enterprise_churn_rate = enterprise_churn_rate * enterprise_contract_length
+                churned_enterprise_customers = round(
+                    current_enterprise_customers * monthly_enterprise_churn_rate)
+            else:
+                monthly_enterprise_churn_rate = 0
+                churned_enterprise_customers = 0
+
+            if is_startup_churn_month:
+                monthly_startup_churn_rate = startup_churn_rate * startup_contract_length
+                churned_startup_customers = round(
+                    current_startup_customers * monthly_startup_churn_rate)
+            else:
+                monthly_startup_churn_rate = 0
+                churned_startup_customers = 0
 
         # Update customer counts
         current_sme_customers = current_sme_customers + \
@@ -833,12 +994,39 @@ def generate_financial_model():
         total_current_customers = current_sme_customers + \
             current_enterprise_customers + current_startup_customers
 
-        # Calculate ARR by segment
-        monthly_sme_arr = (current_sme_customers * current_sme_arr) / 12
+        # Calculate ARR by segment with customer acquisition influence
+        # Now directly tie ARR growth to customer acquisition patterns
+        monthly_sme_arr_per_customer = current_sme_arr / 12
+        monthly_enterprise_arr_per_customer = current_enterprise_arr / 12
+        monthly_startup_arr_per_customer = current_startup_arr / 12
+
+        # Apply additional multiplier for new customers to account for higher pricing on new deals
+        # Default 5% premium on new customers
+        new_customer_premium = config.get('new_customer_premium', 1.05)
+
+        # Calculate monthly ARR, with different rates for existing vs. new customers
+        monthly_sme_arr = (
+            # Existing customers at standard rate
+            ((current_sme_customers - new_sme_customers) * monthly_sme_arr_per_customer) +
+            # New customers with premium
+            (new_sme_customers * monthly_sme_arr_per_customer * new_customer_premium)
+        )
+
         monthly_enterprise_arr = (
-            current_enterprise_customers * current_enterprise_arr) / 12
+            # Existing customers at standard rate
+            ((current_enterprise_customers - new_enterprise_customers) * monthly_enterprise_arr_per_customer) +
+            # New customers with premium
+            (new_enterprise_customers *
+             monthly_enterprise_arr_per_customer * new_customer_premium)
+        )
+
         monthly_startup_arr = (
-            current_startup_customers * current_startup_arr) / 12
+            # Existing customers at standard rate
+            ((current_startup_customers - new_startup_customers) * monthly_startup_arr_per_customer) +
+            # New customers with premium
+            (new_startup_customers *
+             monthly_startup_arr_per_customer * new_customer_premium)
+        )
 
         # Calculate total monthly recurring revenue
         monthly_arr_total = monthly_sme_arr + \
@@ -1176,8 +1364,8 @@ def generate_financial_model():
 monthly_df, annual_df, chart_df, department_df = generate_financial_model()
 
 # Display tabs for different views
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["Key Metrics & Chart", "Annual Summary", "Department Breakdown", "Export Data"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Key Metrics & Chart", "Annual Summary", "Department Breakdown", "Growth Curve Analysis", "Export Data"])
 
 with tab1:
     # Create two columns for layout
@@ -1684,6 +1872,336 @@ with tab3:
     st.pyplot(fig)
 
 with tab4:
+    st.subheader("Growth Curve Analysis - Customer Acquisition Patterns")
+
+    # Create tabs for different views within the Growth Curve Analysis
+    gc_tab1, gc_tab2, gc_tab3 = st.tabs(
+        ["Monthly Growth Visualization", "Annual Growth Summary", "S-Curve Parameters Impact"])
+
+    with gc_tab1:
+        st.markdown("### Monthly Customer Growth by Segment")
+        st.markdown(
+            "This visualization shows how customer acquisition follows an S-curve pattern throughout each year for each segment.")
+
+        # Create a DataFrame for the monthly growth visualization
+        monthly_growth_data = pd.DataFrame({
+            'Month': range(1, len(monthly_df) + 1),
+            'Date': monthly_df['date'],
+            'Year': monthly_df['year'],
+            'Month_of_Year': monthly_df['month'],
+            'SME Customers': monthly_df['sme_customers'],
+            'Enterprise Customers': monthly_df['enterprise_customers'],
+            'Startup Customers': monthly_df['startup_customers'],
+            'Total Customers': monthly_df['total_customers']
+        })
+
+        # Plot the customer growth curves
+        fig, ax = plt.subplots(figsize=(14, 8))
+
+        # Plot each segment
+        ax.plot(monthly_growth_data['Month'], monthly_growth_data['SME Customers'],
+                label='SME', color='#3498db', linewidth=2.5)
+        ax.plot(monthly_growth_data['Month'], monthly_growth_data['Enterprise Customers'],
+                label='Enterprise', color='#2c3e50', linewidth=2.5)
+        ax.plot(monthly_growth_data['Month'], monthly_growth_data['Startup Customers'],
+                label='Startup', color='#e74c3c', linewidth=2.5)
+        ax.plot(monthly_growth_data['Month'], monthly_growth_data['Total Customers'],
+                label='Total Customers', color='#27ae60', linewidth=3.5, linestyle='-')
+
+        # Add year markers
+        for year in range(1, 7):
+            year_start_idx = monthly_growth_data[monthly_growth_data['Year']
+                                                 == year].index[0]
+            if year > 1:
+                ax.axvline(x=year_start_idx, color='gray',
+                           linestyle='--', alpha=0.7)
+                ax.text(year_start_idx, ax.get_ylim()[1]*0.95, f"Year {year}",
+                        ha='center', va='top', bbox=dict(facecolor='white', alpha=0.8))
+
+        # Customize the plot
+        ax.set_title('Customer Growth Curves Over 6 Years', fontsize=16)
+        ax.set_xlabel('Month', fontsize=12)
+        ax.set_ylabel('Number of Customers', fontsize=12)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='upper left')
+
+        # Show the plot
+        st.pyplot(fig)
+
+        # Add metrics to show how the growth curve steepness affects acquisition patterns
+        st.markdown("### Growth Curve Steepness Impact")
+
+        # Create columns for metrics
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("Growth Curve Steepness",
+                      f"{config.get('growth_curve_steepness', 2.0):.1f}")
+            st.caption("Higher values create steeper S-curves")
+
+        with col2:
+            # Calculate ratio of growth in last quarter vs first quarter of year 1
+            y1_first_quarter = monthly_growth_data[(monthly_growth_data['Year'] == 1) &
+                                                   (monthly_growth_data['Month_of_Year'] <= 3)]
+            y1_last_quarter = monthly_growth_data[(monthly_growth_data['Year'] == 1) &
+                                                  (monthly_growth_data['Month_of_Year'] >= 10)]
+
+            first_q_growth = y1_first_quarter['Total Customers'].iloc[-1] - \
+                y1_first_quarter['Total Customers'].iloc[0]
+            last_q_growth = y1_last_quarter['Total Customers'].iloc[-1] - \
+                y1_last_quarter['Total Customers'].iloc[0]
+
+            if first_q_growth > 0:
+                growth_ratio = last_q_growth / first_q_growth
+                st.metric("Year 1 Q4:Q1 Growth Ratio", f"{growth_ratio:.2f}x")
+                st.caption("Shows acceleration from beginning to end of year")
+            else:
+                st.metric("Year 1 Q4:Q1 Growth Ratio", "N/A")
+                st.caption("Insufficient data to calculate ratio")
+
+        with col3:
+            # Calculate average new customers per month
+            avg_new_customers = monthly_growth_data['Total Customers'].diff(
+            ).mean()
+            st.metric("Avg. New Customers/Month", f"{avg_new_customers:.1f}")
+            st.caption("Average customer acquisition rate")
+
+    with gc_tab2:
+        st.markdown("### Annual Customer Growth by Segment")
+
+        # Create a DataFrame for annual growth visualization
+        annual_growth_data = pd.DataFrame({
+            'Year': chart_df['year'],
+            'SME Customers': chart_df['sme_customers'],
+            'Enterprise Customers': chart_df['enterprise_customers'],
+            'Startup Customers': chart_df['startup_customers'],
+            'Total Customers': chart_df['total_customers']
+        })
+
+        # Display the data as a table
+        st.dataframe(annual_growth_data, use_container_width=True)
+
+        # Calculate growth rates year over year
+        annual_growth_rates = pd.DataFrame(
+            {'Year': annual_growth_data['Year'][1:]})
+
+        for segment in ['SME Customers', 'Enterprise Customers', 'Startup Customers', 'Total Customers']:
+            annual_growth_rates[f'{segment} Growth %'] = [
+                ((annual_growth_data[segment].iloc[i] /
+                 annual_growth_data[segment].iloc[i-1]) - 1) * 100
+                for i in range(1, len(annual_growth_data))
+            ]
+
+        # Display growth rates
+        st.markdown("### Year-over-Year Growth Rates (%)")
+        st.dataframe(annual_growth_rates.round(1), use_container_width=True)
+
+        # Create stacked area chart for customer segments
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        # Create stacked area chart
+        ax.stackplot(annual_growth_data['Year'],
+                     annual_growth_data['SME Customers'],
+                     annual_growth_data['Enterprise Customers'],
+                     annual_growth_data['Startup Customers'],
+                     labels=['SME', 'Enterprise', 'Startup'],
+                     alpha=0.7,
+                     colors=['#3498db', '#2c3e50', '#e74c3c'])
+
+        # Add a line for total customers
+        ax.plot(annual_growth_data['Year'], annual_growth_data['Total Customers'],
+                color='#27ae60', linewidth=3, label='Total Customers')
+
+        # Add data labels
+        for i, row in annual_growth_data.iterrows():
+            ax.text(row['Year'], row['Total Customers'] + 5,
+                    f"{row['Total Customers']}", ha='center', fontweight='bold')
+
+            # Add segment breakdown labels every other year
+            if i % 2 == 0:
+                sme_y_pos = row['SME Customers'] / 2
+                ent_y_pos = row['SME Customers'] + \
+                    row['Enterprise Customers'] / 2
+                startup_y_pos = row['SME Customers'] + \
+                    row['Enterprise Customers'] + row['Startup Customers'] / 2
+
+                ax.text(row['Year'], sme_y_pos, f"SME: {row['SME Customers']}",
+                        ha='center', color='white', fontweight='bold')
+                ax.text(row['Year'], ent_y_pos, f"Ent: {row['Enterprise Customers']}",
+                        ha='center', color='white', fontweight='bold')
+                ax.text(row['Year'], startup_y_pos, f"Startup: {row['Startup Customers']}",
+                        ha='center', color='white', fontweight='bold')
+
+        # Set labels and title
+        ax.set_title('Cumulative Customer Growth by Segment', fontsize=16)
+        ax.set_xlabel('Year', fontsize=14)
+        ax.set_ylabel('Number of Customers', fontsize=14)
+        ax.legend(loc='upper left')
+        ax.grid(True, alpha=0.3)
+
+        st.pyplot(fig)
+
+        # Create a bar chart showing the segment proportions
+        st.markdown("### Customer Segment Distribution")
+
+        # Calculate percentage distribution for each year
+        segment_pcts = pd.DataFrame({'Year': annual_growth_data['Year']})
+
+        for segment in ['SME Customers', 'Enterprise Customers', 'Startup Customers']:
+            segment_pcts[f'{segment} %'] = (
+                annual_growth_data[segment] / annual_growth_data['Total Customers'] * 100).round(1)
+
+        # Plot the percentage distribution
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        # Create the stacked percentage bars
+        bottom = np.zeros(len(segment_pcts))
+
+        for segment, color in zip(['SME Customers %', 'Enterprise Customers %', 'Startup Customers %'],
+                                  ['#3498db', '#2c3e50', '#e74c3c']):
+            segment_name = segment.split(' ')[0]
+            ax.bar(segment_pcts['Year'], segment_pcts[segment], bottom=bottom,
+                   label=segment_name, color=color, width=0.6)
+
+            # Add percentage labels
+            for i, value in enumerate(segment_pcts[segment]):
+                if value > 5:  # Only show label if segment is at least 5%
+                    ax.text(segment_pcts['Year'].iloc[i], bottom[i] + value/2,
+                            f"{value:.1f}%", ha='center', va='center', color='white', fontweight='bold')
+
+            bottom += segment_pcts[segment]
+
+        # Customize plot
+        ax.set_title('Customer Segment Distribution by Year (%)', fontsize=16)
+        ax.set_xlabel('Year', fontsize=14)
+        ax.set_ylabel('Percentage of Customers', fontsize=14)
+        ax.set_ylim(0, 100)
+        ax.legend(loc='upper right')
+
+        st.pyplot(fig)
+
+    with gc_tab3:
+        st.markdown("### S-Curve Parameters and Their Impact")
+
+        st.markdown("""
+        The S-curve growth pattern is controlled by several parameters that you can adjust in the sidebar:
+        
+        1. **Growth Curve Steepness** (currently set to `{:.1f}`): Controls how quickly growth accelerates within each year
+        2. **Segment-specific factors**:
+           - SME Growth Factor: `{:.1f}`
+           - Enterprise Growth Factor: `{:.1f}`
+           - Startup Growth Factor: `{:.1f}`
+        
+        These parameters control the shape of the exponential growth curve for each customer segment:
+        """.format(
+            config.get('growth_curve_steepness', 2.0),
+            config.get('sme_curve_factor', 1.0),
+            config.get('enterprise_curve_factor', 1.0),
+            config.get('startup_curve_factor', 1.0)
+        ))
+
+        # Generate S-curve visualization for different parameters
+        st.markdown("### Visualizing the S-Curve Shape")
+
+        # Create sample data for s-curve visualization
+        months = np.linspace(0, 12, 100)
+        progress = months / 12  # Convert to 0-1 scale
+
+        # Calculate curves for different steepness values
+        steepness_values = [0.5, 1.0, 2.0, 3.0]
+        curve_data = []
+
+        # Current steepness
+        current_steepness = config.get('growth_curve_steepness', 2.0)
+
+        # Calculate curves including the current one
+        if current_steepness not in steepness_values:
+            steepness_values.append(current_steepness)
+            steepness_values.sort()
+
+        # Calculate visualization for the growth multipliers
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        for steepness in steepness_values:
+            # Calculate the curve for this steepness
+            growth_multiplier = 0.5 + (progress ** steepness) * 1.5
+
+            # Different line style for current value
+            if steepness == current_steepness:
+                ax.plot(months, growth_multiplier, linewidth=4,
+                        label=f'Current ({steepness:.1f})', color='red')
+            else:
+                ax.plot(months, growth_multiplier, linewidth=2,
+                        label=f'Steepness {steepness:.1f}', alpha=0.7)
+
+        # Add segment-specific curves
+        sme_multiplier = 0.5 + (progress ** current_steepness) * \
+            1.5 * config.get('sme_curve_factor', 1.0)
+        enterprise_multiplier = 0.3 + \
+            (progress ** (current_steepness * 1.2)) * 2.1 * \
+            config.get('enterprise_curve_factor', 1.0)
+        startup_multiplier = 0.7 + \
+            (progress ** (current_steepness * 0.8)) * \
+            1.2 * config.get('startup_curve_factor', 1.0)
+
+        ax.plot(months, sme_multiplier, '--',
+                label='SME Segment', color='#3498db')
+        ax.plot(months, enterprise_multiplier, '--',
+                label='Enterprise Segment', color='#2c3e50')
+        ax.plot(months, startup_multiplier, '--',
+                label='Startup Segment', color='#e74c3c')
+
+        # Customize the plot
+        ax.set_title(
+            'S-Curve Shapes with Different Steepness Values', fontsize=16)
+        ax.set_xlabel('Month of Year', fontsize=14)
+        ax.set_ylabel('Growth Multiplier', fontsize=14)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='upper left')
+        ax.set_xticks(np.arange(0, 13, 1))
+
+        st.pyplot(fig)
+
+        st.markdown("""
+        ### How to Interpret the S-Curve
+        
+        The growth multiplier shows how customer acquisition varies throughout the year:
+        
+        - **Values < 1.0**: Growth slower than the base rate
+        - **Values = 1.0**: Growth at exactly the base rate
+        - **Values > 1.0**: Growth faster than the base rate
+        
+        Most SaaS businesses experience slower growth at the beginning of each year, with acceleration toward the end as:
+        
+        1. Marketing efforts compound
+        2. Sales team becomes more effective
+        3. Seasonal budget cycles favor Q4 spending
+        
+        Adjust the steepness and segment factors to match your expected growth patterns.
+        """)
+
+        # Display segment-specific curve information
+        st.markdown("### Segment-Specific Growth Patterns")
+
+        # Create columns for metrics
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("SME - Year Start Multiplier", f"{0.5:.2f}x")
+            st.metric("SME - Year End Multiplier",
+                      f"{(0.5 + 1.5 * config.get('sme_curve_factor', 1.0)):.2f}x")
+
+        with col2:
+            st.metric("Enterprise - Year Start Multiplier", f"{0.3:.2f}x")
+            st.metric("Enterprise - Year End Multiplier",
+                      f"{(0.3 + 2.1 * config.get('enterprise_curve_factor', 1.0)):.2f}x")
+
+        with col3:
+            st.metric("Startup - Year Start Multiplier", f"{0.7:.2f}x")
+            st.metric("Startup - Year End Multiplier",
+                      f"{(0.7 + 1.2 * config.get('startup_curve_factor', 1.0)):.2f}x")
+
+with tab5:
     st.subheader("Export Data")
 
     # Create download links for each dataset
@@ -1796,7 +2314,6 @@ with tab4:
 
     # Create a zip file-like buffer
     if st.button("Export All Data (CSV)"):
-        # Create a temporary directory and save the CSVs there
         st.markdown(
             "Exporting all data... Please click on each link below to download:")
         st.markdown("1. " + get_download_link(annual_df, "annual_summary",

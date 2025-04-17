@@ -52,7 +52,13 @@ ga_monthly_base,15000.0
 ga_percent_revenue,0.08
 efficiency_y3,0.05
 efficiency_y4_plus,0.08
-sme_initial_customers,1.0
+sme_initial_customers,10.0
 sme_arr_growth_rate,0.23
-enterprise_arr_growth_rate,0.21
+enterprise_arr_growth_rate,0.5
 sme_initial_arr,25000.0
+startup_arr_growth_rate,0.13
+startup_initial_customers,100.0
+sme_curve_factor,1.1
+enterprise_curve_factor,1.1
+startup_curve_factor,1.1
+growth_curve_steepness,1.4
