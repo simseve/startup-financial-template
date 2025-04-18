@@ -399,104 +399,118 @@ class SaaSFinancialModel:
                 "Model has not been run yet. Call run_model() first.")
         return self.annual_data.copy()
 
+
     def plot_financial_summary(self, figsize=(14, 8)):
         """
-        Plot financial summary similar to the example provided
-
+        Plot financial summary with revenue and EBITDA as side-by-side columns and customers as a line
+        
         Parameters:
         -----------
         figsize : tuple, optional
             Figure size for the plot
-
+            
         Returns:
         --------
         fig : matplotlib figure
             Matplotlib figure with the plot
         """
-        if not self._model_run:
-            raise RuntimeError(
-                "Model has not been run yet. Call run_model() first.")
-
-        # Create figure
+        if not hasattr(self, '_model_run') or not self._model_run:
+            raise RuntimeError("Model has not been run yet. Call run_model() first.")
+        
+        # Create figure with proper sizing
         fig, ax1 = plt.subplots(figsize=figsize)
-
+        
         # Set up data
         years = self.annual_data['year'].values
-        years_str = [str(self.annual_data['year_start_date'].iloc[i].year)
-                     for i in range(len(years))]
+        years_str = [str(self.annual_data['year_start_date'].iloc[i].year) 
+                    for i in range(len(years))]
         # Convert to millions
         revenue = self.annual_data['annual_revenue'].values / 1000000
         # Convert to millions
         ebitda = self.annual_data['annual_ebitda'].values / 1000000
         customers = self.annual_data['year_end_customers'].values
-
-        # Plot revenue as bars
-        bar_width = 0.4
-        revenue_bars = ax1.bar(years, revenue, bar_width,
-                               label='Total revenue', color='#3b5998')
-
-        # Plot EBITDA as bars
-        ebitda_bars = ax1.bar(years, ebitda, bar_width,
-                              label='EBITDA', color='#4ECDC4')
-
+        
+        # Set up x positions
+        x = np.arange(len(years))
+        bar_width = 0.35
+        
+        # Plot revenue bars in dark blue (left position)
+        revenue_bars = ax1.bar(x - bar_width/2, revenue, width=bar_width, 
+                            label='Total revenue', color='#1a3e8c')
+        
+        # Plot EBITDA bars in light blue (right position)
+        ebitda_bars = ax1.bar(x + bar_width/2, ebitda, width=bar_width, 
+                            label='EBITDA', color='#30a9de')
+        
         # Configure left y-axis (revenue/EBITDA)
-        ax1.set_xlabel('Year')
+        ax1.set_xlabel('')
         ax1.set_ylabel('Revenue/EBITDA ($M)')
-
+        
+        # Set y-axis range to include padding for negative values
+        y_min = min(min(ebitda), 0) - 5  # Add padding below the lowest negative value
+        y_max = max(revenue) * 1.2  # Add 20% padding above the highest revenue
+        ax1.set_ylim(y_min, y_max)
+        
+        # Add horizontal grid lines with dotted style
+        ax1.yaxis.grid(True, linestyle='--', alpha=0.7, color='#cccccc')
+        ax1.set_axisbelow(True)  # Place gridlines behind the bars
+        
         # Create secondary y-axis for customers
         ax2 = ax1.twinx()
         ax2.set_ylabel('Number of customers')
-
-        # Plot customers as line
-        customer_line = ax2.plot(
-            years, customers, marker='o', color='#FF6B6B', linewidth=2, label='Customers')
-
-        # Set labels on the bars
+        
+        # Set customer axis range
+        customer_max = max(customers) * 1.1
+        ax2.set_ylim(0, customer_max)
+        
+        # Plot customers as line with markers
+        customer_line = ax2.plot(x, customers, marker='o', color='#ff6347', 
+                                linewidth=2, label='customers')
+        
+        # Add labels on the bars
         for i, bar in enumerate(revenue_bars):
             height = bar.get_height()
             if height > 0:
-                ax1.text(bar.get_x() + bar.get_width()/2., height + 0.3,
-                         f'${revenue[i]:.0f}M', ha='center', va='bottom')
-
+                ax1.text(bar.get_x() + bar.get_width()/2., height + 0.5,
+                        f'{int(revenue[i])}', ha='center', va='bottom')
+        
         for i, bar in enumerate(ebitda_bars):
             height = bar.get_height()
             sign = '+' if height > 0 else ''
-            ax1.text(bar.get_x() + bar.get_width()/2.,
-                     height + 0.3 if height > 0 else height - 1.5,
-                     f'{sign}${ebitda[i]:.0f}M', ha='center', va='bottom')
-
-        # Add customer count labels with improved positioning and styling
+            pos_y = height + 0.5 if height > 0 else height - 2
+            ax1.text(bar.get_x() + bar.get_width()/2., pos_y,
+                    f'{sign}{int(ebitda[i])}', ha='center', va='bottom')
+        
+        # Add customer labels
         for i, y in enumerate(customers):
-            # Create a text box with customer count
-            # Position the label higher above the data point with more padding
-            # Add a white background with border to make it stand out
-            ax2.annotate(f'{int(y):,}', 
-                         xy=(years[i], y),
-                         xytext=(0, 15),  # Vertical offset from the data point
-                         textcoords='offset points',
-                         ha='center',
-                         va='bottom',
-                         bbox=dict(boxstyle="round,pad=0.3", 
-                                   fc='white', 
-                                   ec='#FF6B6B', 
-                                   alpha=0.8),
-                         fontsize=9)  # Smaller font size
-
-        # Combine legends
+            ax2.text(x[i], y + (customer_max * 0.02), f'{int(y)}', 
+                    ha='center', va='bottom')
+        
+        # Use actual years as x-axis labels
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(years_str)
+        
+        # Add a zero line for clarity with EBITDA values
+        ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5, alpha=0.5)
+        
+        # Add legends at the bottom
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
-
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper center', 
+                bbox_to_anchor=(0.5, -0.05), ncol=3)
+        
         # Add title
         plt.title('Key Financial Results and Projections\nIllustrative example',
-                  fontsize=18, fontweight='bold')
-
-        # Use actual years as x-axis labels
-        ax1.set_xticks(years)
-        ax1.set_xticklabels(years_str)
-
+                fontsize=16, fontweight='bold')
+        
+        # Remove top and right spines for cleaner look
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+        
         plt.tight_layout()
         return fig
+
 
     def plot_unit_economics(self, figsize=(12, 8)):
         """
