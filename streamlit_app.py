@@ -180,8 +180,9 @@ def load_config_from_file(filename):
 # Main app layout
 st.title("AI SaaS Financial Model with Growth Strategies")
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🌱   Growth Parameters   ", 
+    "📈   Baseline S-Curves   ",
     "💰   Cost Parameters   ", 
     "📊   Growth Strategies   ", 
     "🔍   Results & Charts   ", 
@@ -395,8 +396,203 @@ with tab1:
                 st.info("Please refresh the page to apply the loaded configuration.")
                 # In a more complex app, we would update all UI elements here
 
-# Tab 2: Cost Parameters
+# Tab 2: Baseline S-Curves
 with tab2:
+    st.header("Baseline S-Curve Configuration")
+    
+    st.write("""
+    The baseline S-curve parameters define the underlying growth pattern before applying any multipliers 
+    from the growth strategies. These parameters determine the shape and pace of customer acquisition for each segment.
+    """)
+    
+    # Define default baseline S-curve values from app.py
+    default_baseline = {
+        'Enterprise': {
+            1: {'midpoint': 6, 'steepness': 0.5, 'max_monthly': 3},
+            2: {'midpoint': 6, 'steepness': 0.6, 'max_monthly': 5},
+            3: {'midpoint': 6, 'steepness': 0.7, 'max_monthly': 7},
+            4: {'midpoint': 6, 'steepness': 0.7, 'max_monthly': 10},
+            5: {'midpoint': 6, 'steepness': 0.7, 'max_monthly': 12},
+            6: {'midpoint': 6, 'steepness': 0.7, 'max_monthly': 15},
+        },
+        'Mid-Market': {
+            1: {'midpoint': 6, 'steepness': 0.6, 'max_monthly': 8},
+            2: {'midpoint': 6, 'steepness': 0.7, 'max_monthly': 12},
+            3: {'midpoint': 6, 'steepness': 0.8, 'max_monthly': 18},
+            4: {'midpoint': 6, 'steepness': 0.8, 'max_monthly': 25},
+            5: {'midpoint': 6, 'steepness': 0.7, 'max_monthly': 30},
+            6: {'midpoint': 6, 'steepness': 0.6, 'max_monthly': 35},
+        },
+        'SMB': {
+            1: {'midpoint': 6, 'steepness': 0.7, 'max_monthly': 15},
+            2: {'midpoint': 6, 'steepness': 0.8, 'max_monthly': 25},
+            3: {'midpoint': 6, 'steepness': 0.9, 'max_monthly': 40},
+            4: {'midpoint': 6, 'steepness': 1.0, 'max_monthly': 60},
+            5: {'midpoint': 6, 'steepness': 0.9, 'max_monthly': 80},
+            6: {'midpoint': 6, 'steepness': 0.8, 'max_monthly': 100},
+        }
+    }
+    
+    # Store user-modified baseline values in session state
+    if 'baseline_scurve' not in st.session_state:
+        st.session_state.baseline_scurve = default_baseline.copy()
+    
+    # Create a tabbed interface for each segment
+    segment_tabs = st.tabs(['Enterprise', 'Mid-Market', 'SMB'])
+    
+    # For each segment, create year-by-year S-curve parameter controls
+    for i, segment in enumerate(['Enterprise', 'Mid-Market', 'SMB']):
+        with segment_tabs[i]:
+            st.subheader(f"{segment} Baseline S-Curve Parameters")
+            
+            st.write("""
+            Configure the S-curve parameters that control customer acquisition:
+            - **Midpoint**: Month within the year when growth is at half the maximum rate
+            - **Steepness**: How rapidly growth accelerates/decelerates (higher = steeper S-curve)
+            - **Max Monthly**: Maximum number of new customers that can be acquired in a month
+            """)
+            
+            # Show a table of the current values
+            current_values = []
+            for year in range(1, 7):
+                params = st.session_state.baseline_scurve[segment][year]
+                current_values.append({
+                    'Year': year,
+                    'Midpoint (Month)': params['midpoint'],
+                    'Steepness': params['steepness'],
+                    'Max Monthly': params['max_monthly']
+                })
+            
+            df = pd.DataFrame(current_values)
+            st.table(df)
+            
+            # Create year-by-year editing sliders in an expander
+            with st.expander(f"Edit {segment} S-Curve Parameters"):
+                for year in range(1, 7):
+                    st.markdown(f"##### Year {year}")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        midpoint = st.slider(
+                            f"Midpoint - Y{year}", 
+                            min_value=1,
+                            max_value=12,
+                            value=st.session_state.baseline_scurve[segment][year]['midpoint'],
+                            key=f"baseline_{segment}_y{year}_midpoint"
+                        )
+                        st.session_state.baseline_scurve[segment][year]['midpoint'] = midpoint
+                    
+                    with col2:
+                        steepness = st.slider(
+                            f"Steepness - Y{year}", 
+                            min_value=0.1,
+                            max_value=2.0,
+                            value=st.session_state.baseline_scurve[segment][year]['steepness'],
+                            step=0.1,
+                            key=f"baseline_{segment}_y{year}_steepness"
+                        )
+                        st.session_state.baseline_scurve[segment][year]['steepness'] = steepness
+                    
+                    with col3:
+                        max_value = 50 if segment == 'Enterprise' else (100 if segment == 'Mid-Market' else 150)
+                        max_monthly = st.slider(
+                            f"Max Monthly - Y{year}", 
+                            min_value=1,
+                            max_value=max_value,
+                            value=st.session_state.baseline_scurve[segment][year]['max_monthly'],
+                            key=f"baseline_{segment}_y{year}_max_monthly"
+                        )
+                        st.session_state.baseline_scurve[segment][year]['max_monthly'] = max_monthly
+            
+            # Visualize the S-curve for this segment
+            if st.checkbox(f"Visualize {segment} S-Curves", value=True):
+                fig, ax = plt.subplots(figsize=(10, 6))
+                
+                for year in range(1, 7):
+                    # Get parameters
+                    params = st.session_state.baseline_scurve[segment][year]
+                    midpoint = params['midpoint'] - 1  # 0-indexed
+                    steepness = params['steepness']
+                    max_monthly = params['max_monthly']
+                    
+                    # Generate the S-curve for this year
+                    months = np.arange(12)
+                    s_curve_values = [max_monthly / (1 + np.exp(-steepness * (month - midpoint))) for month in months]
+                    
+                    # Plot
+                    ax.plot(
+                        months + 1,  # Convert back to 1-indexed for display
+                        s_curve_values,
+                        marker='o',
+                        label=f'Year {year}'
+                    )
+                
+                ax.set_xlabel('Month of Year')
+                ax.set_ylabel('New Customers')
+                ax.set_title(f'{segment} Baseline S-Curves by Year')
+                ax.set_xticks(range(1, 13))
+                ax.grid(True, alpha=0.3)
+                ax.legend()
+                
+                st.pyplot(fig)
+    
+    # Show how to use the modified baseline
+    st.markdown("### Using Your Modified Baseline")
+    st.write("""
+    When you modify the baseline S-curve parameters above, they will be applied to all subsequent model runs.
+    
+    The growth strategy multipliers will be applied on top of these baseline values.
+    For example, if you set the Enterprise Year 1 Max Monthly to 5 and then apply a 2.0x multiplier
+    from a growth strategy, the effective Max Monthly will be 10.
+    """)
+    
+    # Option to reset to defaults
+    if st.button("Reset to Default Baseline", type="secondary"):
+        st.session_state.baseline_scurve = default_baseline.copy()
+        st.success("Baseline S-curve parameters reset to defaults!")
+        st.rerun()
+    
+    # Option to export and import (save/load) baseline
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Export Baseline Parameters", type="secondary"):
+            # Convert dictionary to JSON string
+            baseline_json = json.dumps(st.session_state.baseline_scurve, indent=2)
+            # Create a downloadable link
+            b64 = base64.b64encode(baseline_json.encode()).decode()
+            href = f'<a href="data:file/json;base64,{b64}" download="baseline_scurve_params.json">Download Baseline Parameters</a>'
+            st.markdown(href, unsafe_allow_html=True)
+    
+    with col2:
+        uploaded_file = st.file_uploader("Import Baseline Parameters", type="json")
+        if uploaded_file is not None:
+            try:
+                loaded_baseline = json.load(uploaded_file)
+                # Validate the structure to ensure it matches expected format
+                valid = True
+                for segment in ['Enterprise', 'Mid-Market', 'SMB']:
+                    if segment not in loaded_baseline:
+                        valid = False
+                        break
+                    for year in range(1, 7):
+                        if year not in loaded_baseline[segment]:
+                            valid = False
+                            break
+                        if not all(k in loaded_baseline[segment][year] for k in ['midpoint', 'steepness', 'max_monthly']):
+                            valid = False
+                            break
+                
+                if valid:
+                    st.session_state.baseline_scurve = loaded_baseline
+                    st.success("Baseline parameters loaded successfully!")
+                    st.rerun()
+                else:
+                    st.error("Invalid baseline parameter format!")
+            except Exception as e:
+                st.error(f"Error loading baseline parameters: {str(e)}")
+
+# Tab 3: Cost Parameters
+with tab3:
     st.header("Cost Model Parameters")
     
     # COGS Parameters
@@ -1241,7 +1437,8 @@ with tab3:
                 'contract_length': contract_length,
                 'churn_rates': churn_rates,
                 'annual_price_increases': annual_price_increases,
-                's_curve': s_curve_params,
+                # Use customized baseline S-curve parameters if available, otherwise use the ones from the Growth Parameters tab
+                's_curve': st.session_state.baseline_scurve if 'baseline_scurve' in st.session_state else s_curve_params,
                 'seasonality': seasonality
             }
             
