@@ -1,0 +1,12 @@
+Metric,Breakeven Optimization,Series B Optimization
+Optimization Target,Breakeven,Series B
+Target Month,24,36
+Achieved Month,18,23
+Growth Multiplier,0.40x,0.60x
+Breakeven Month,,
+Year 3 ARR ($M),9.880752850000002,14.8439035
+Year 3 Customers,331,489
+Year 6 ARR ($M),44.09780063006456,65.31022439721306
+Year 6 EBITDA ($M),-74.34566244336423,-79.0123956721369
+Year 6 Valuation (5x Revenue) ($M),220.4890031503228,326.55112198606525
+Minimum Cash Position ($M),-242.31143692818154,-255.48453229559644
