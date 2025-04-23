@@ -733,7 +733,9 @@ class SaaSFinancialModel:
 
         # Add metrics directly from the revenue model
         revenue_annual = self.revenue_model.get_annual_data()
-        # Use annual revenue instead of monthly revenue (remove division by 12)
+
+        # Add both ARR (point-in-time) and annual revenue (sum of monthly revenue)
+        metrics['ARR ($M)'] = self.annual_data['year_end_arr'].values / 1000000
         metrics['Revenue ($M)'] = self.annual_data['annual_revenue'].values / 1000000
         metrics['Customers'] = revenue_annual['total_ending_customers'].values
 
@@ -784,6 +786,8 @@ class SaaSFinancialModel:
         # Format metrics
         formatted_metrics = pd.DataFrame(index=metrics.index)
 
+        formatted_metrics['ARR ($M)'] = [
+            f"${x:.1f}M" for x in metrics['ARR ($M)'].values]
         formatted_metrics['Revenue ($M)'] = [
             f"${x:.1f}M" for x in metrics['Revenue ($M)'].values]
         formatted_metrics['Total Expenses ($M)'] = [
