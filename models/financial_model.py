@@ -459,28 +459,51 @@ class SaaSFinancialModel:
         # Create secondary y-axis for customers
         ax2 = ax1.twinx()
         ax2.set_ylabel('Number of customers')
+        
+        # Set formatter for primary y-axis to show 2 decimal places
+        from matplotlib.ticker import FormatStrFormatter
+        ax1.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
-        # Set customer axis range
+        # Set the y-axis range for revenue/EBITDA
+        # Ensure we have a reasonable amount of space below zero
+        padding_below = max(5, abs(min(ebitda)) * 0.2)  # At least 5M or 20% of the lowest negative value
+        y_min = min(min(ebitda), 0) - padding_below  
+        y_max = max(revenue) * 1.2  # Add 20% padding above the highest revenue
+        ax1.set_ylim(y_min, y_max)
+        
+        # For customer axis, directly align the 0 point with the revenue/EBITDA zero
         customer_max = max(customers) * 1.1
-        ax2.set_ylim(0, customer_max)
+        
+        # Get the fraction of the revenue/EBITDA y-axis occupied by negative values
+        if y_min >= 0:
+            # No negative values, just set both axes to start at 0
+            ax2.set_ylim(0, customer_max)
+        else:
+            # Calculate what fraction of the axis is below zero
+            fraction_below_zero = abs(y_min) / (y_max - y_min)
+            
+            # Create the same proportion for customer axis by adjusting the top value
+            # This ensures y=0 aligns on both axes
+            customer_new_max = customer_max / (1.0 - fraction_below_zero)
+            ax2.set_ylim(bottom=0, top=customer_new_max)
 
         # Plot customers as line with markers
         customer_line = ax2.plot(x, customers, marker='o', color='#ff6347',
                                  linewidth=2, label='customers')
 
-        # Add labels on the bars
+        # Add labels on the bars with 2 decimal places
         for i, bar in enumerate(revenue_bars):
             height = bar.get_height()
             if height > 0:
                 ax1.text(bar.get_x() + bar.get_width()/2., height + 0.5,
-                         f'{int(revenue[i])}', ha='center', va='bottom')
+                         f'{revenue[i]:.2f}', ha='center', va='bottom')
 
         for i, bar in enumerate(ebitda_bars):
             height = bar.get_height()
             sign = '+' if height > 0 else ''
             pos_y = height + 0.5 if height > 0 else height - 2
             ax1.text(bar.get_x() + bar.get_width()/2., pos_y,
-                     f'{sign}{int(ebitda[i])}', ha='center', va='bottom')
+                     f'{sign}{ebitda[i]:.2f}', ha='center', va='bottom')
 
         # Add customer labels
         for i, y in enumerate(customers):
@@ -502,7 +525,7 @@ class SaaSFinancialModel:
                    bbox_to_anchor=(0.5, -0.05), ncol=3)
 
         # Add title
-        plt.title('Key Financial Results and Projections\nIllustrative example',
+        plt.title('Key Financial Results and Projections',
                   fontsize=16, fontweight='bold')
 
         # Remove top and right spines for cleaner look

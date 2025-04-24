@@ -1789,7 +1789,7 @@ with tab2:
             except Exception as e:
                 st.error(f"Error loading baseline parameters: {str(e)}")
 
-# Tab 3: Cost Model Parameters
+# Tab 3: Cost Parameters
 with tab3:
     st.header("Cost Model Parameters")
     
@@ -1839,41 +1839,41 @@ with tab3:
                         key=f"eng_growth_y{year}"
                     )
             
-            # Store engineering headcount info in the dictionary
-            headcount['Engineering'] = {
+            headcount['engineering'] = {
                 'starting_count': eng_starting,
+                'growth_type': 'step',
                 'growth_factors': eng_growth,
                 'avg_salary': eng_salary
             }
-            
+        
         # Product tab
         with headcount_tabs[1]:
             st.markdown("##### Product Team")
             col1, col2 = st.columns(2)
             
             with col1:
-                product_starting = st.number_input("Starting Count", min_value=1, max_value=30, value=5, step=1)
-                product_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=250000, value=140000, step=10000)
+                prod_starting = st.number_input("Starting Count", min_value=1, max_value=30, value=3, step=1, key="prod_count")
+                prod_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=300000, value=170000, step=10000, key="prod_salary")
             
             with col2:
                 st.markdown("##### Growth Factors by Year")
-                product_growth = {}
+                prod_growth = {}
                 for year in range(1, 7):
-                    default_values = [1.6, 1.7, 1.5, 1.4, 1.3, 1.2]
-                    product_growth[year] = st.slider(
+                    default_values = [1.5, 1.7, 1.5, 1.4, 1.3, 1.2]
+                    prod_growth[year] = st.slider(
                         f"Year {year} Growth", 
                         min_value=1.0, 
                         max_value=3.0, 
                         value=default_values[year-1], 
                         step=0.1,
-                        key=f"product_growth_y{year}"
+                        key=f"prod_growth_y{year}"
                     )
             
-            # Store product headcount info in the dictionary
-            headcount['Product'] = {
-                'starting_count': product_starting,
-                'growth_factors': product_growth,
-                'avg_salary': product_salary
+            headcount['product'] = {
+                'starting_count': prod_starting,
+                'growth_type': 'step',
+                'growth_factors': prod_growth,
+                'avg_salary': prod_salary
             }
         
         # Sales tab
@@ -1882,14 +1882,14 @@ with tab3:
             col1, col2 = st.columns(2)
             
             with col1:
-                sales_starting = st.number_input("Starting Count", min_value=1, max_value=50, value=8, step=1)
-                sales_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=200000, value=120000, step=10000)
+                sales_starting = st.number_input("Starting Count", min_value=1, max_value=50, value=4, step=1, key="sales_count")
+                sales_salary = st.number_input("Average Base Salary ($)", min_value=50000, max_value=300000, value=180000, step=10000, key="sales_salary")
             
             with col2:
                 st.markdown("##### Growth Factors by Year")
                 sales_growth = {}
                 for year in range(1, 7):
-                    default_values = [1.8, 2.0, 1.8, 1.6, 1.4, 1.3]
+                    default_values = [2.0, 1.8, 1.6, 1.4, 1.3, 1.2]
                     sales_growth[year] = st.slider(
                         f"Year {year} Growth", 
                         min_value=1.0, 
@@ -1899,9 +1899,9 @@ with tab3:
                         key=f"sales_growth_y{year}"
                     )
             
-            # Store sales headcount info in the dictionary
-            headcount['Sales'] = {
+            headcount['sales'] = {
                 'starting_count': sales_starting,
+                'growth_type': 'step',
                 'growth_factors': sales_growth,
                 'avg_salary': sales_salary
             }
@@ -1912,28 +1912,28 @@ with tab3:
             col1, col2 = st.columns(2)
             
             with col1:
-                marketing_starting = st.number_input("Starting Count", min_value=1, max_value=30, value=6, step=1)
-                marketing_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=200000, value=130000, step=10000)
+                mktg_starting = st.number_input("Starting Count", min_value=1, max_value=40, value=3, step=1, key="mktg_count")
+                mktg_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=250000, value=120000, step=10000, key="mktg_salary")
             
             with col2:
                 st.markdown("##### Growth Factors by Year")
-                marketing_growth = {}
+                mktg_growth = {}
                 for year in range(1, 7):
-                    default_values = [1.7, 1.8, 1.7, 1.5, 1.3, 1.2]
-                    marketing_growth[year] = st.slider(
+                    default_values = [1.8, 1.7, 1.5, 1.4, 1.3, 1.2]
+                    mktg_growth[year] = st.slider(
                         f"Year {year} Growth", 
                         min_value=1.0, 
                         max_value=3.0, 
                         value=default_values[year-1], 
                         step=0.1,
-                        key=f"marketing_growth_y{year}"
+                        key=f"mktg_growth_y{year}"
                     )
             
-            # Store marketing headcount info in the dictionary
-            headcount['Marketing'] = {
-                'starting_count': marketing_starting,
-                'growth_factors': marketing_growth,
-                'avg_salary': marketing_salary
+            headcount['marketing'] = {
+                'starting_count': mktg_starting,
+                'growth_type': 'step',
+                'growth_factors': mktg_growth,
+                'avg_salary': mktg_salary
             }
         
         # Customer Success tab
@@ -1942,14 +1942,14 @@ with tab3:
             col1, col2 = st.columns(2)
             
             with col1:
-                cs_starting = st.number_input("Starting Count", min_value=1, max_value=40, value=7, step=1)
-                cs_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=150000, value=90000, step=10000)
+                cs_starting = st.number_input("Starting Count", min_value=1, max_value=40, value=2, step=1, key="cs_count")
+                cs_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=200000, value=110000, step=10000, key="cs_salary")
             
             with col2:
                 st.markdown("##### Growth Factors by Year")
                 cs_growth = {}
                 for year in range(1, 7):
-                    default_values = [1.5, 1.8, 1.9, 1.7, 1.5, 1.4]
+                    default_values = [1.5, 1.7, 1.6, 1.4, 1.3, 1.2]
                     cs_growth[year] = st.slider(
                         f"Year {year} Growth", 
                         min_value=1.0, 
@@ -1959,27 +1959,27 @@ with tab3:
                         key=f"cs_growth_y{year}"
                     )
             
-            # Store customer success headcount info in the dictionary
-            headcount['Customer Success'] = {
+            headcount['customer_success'] = {
                 'starting_count': cs_starting,
+                'growth_type': 'step',
                 'growth_factors': cs_growth,
                 'avg_salary': cs_salary
             }
         
         # G&A tab
         with headcount_tabs[5]:
-            st.markdown("##### G&A Team")
+            st.markdown("##### G&A Team (General & Administrative)")
             col1, col2 = st.columns(2)
             
             with col1:
-                ga_starting = st.number_input("Starting Count", min_value=1, max_value=20, value=5, step=1)
-                ga_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=200000, value=110000, step=10000)
+                ga_starting = st.number_input("Starting Count", min_value=1, max_value=30, value=4, step=1, key="ga_count")
+                ga_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=200000, value=120000, step=10000, key="ga_salary")
             
             with col2:
                 st.markdown("##### Growth Factors by Year")
                 ga_growth = {}
                 for year in range(1, 7):
-                    default_values = [1.4, 1.5, 1.6, 1.4, 1.3, 1.2]
+                    default_values = [1.4, 1.6, 1.4, 1.3, 1.2, 1.1]
                     ga_growth[year] = st.slider(
                         f"Year {year} Growth", 
                         min_value=1.0, 
@@ -1989,9 +1989,9 @@ with tab3:
                         key=f"ga_growth_y{year}"
                     )
             
-            # Store G&A headcount info in the dictionary
-            headcount['G&A'] = {
+            headcount['g_and_a'] = {
                 'starting_count': ga_starting,
+                'growth_type': 'step',
                 'growth_factors': ga_growth,
                 'avg_salary': ga_salary
             }
@@ -2019,9 +2019,9 @@ with tab3:
                         key=f"research_growth_y{year}"
                     )
             
-            # Store research headcount info in the dictionary
-            headcount['Research'] = {
+            headcount['research'] = {
                 'starting_count': research_starting,
+                'growth_type': 'step',
                 'growth_factors': research_growth,
                 'avg_salary': research_salary
             }
@@ -2045,246 +2045,162 @@ with tab3:
         col1, col2 = st.columns(2)
         
         with col1:
-            paid_advertising = st.slider("Paid Advertising (%)", min_value=0.0, max_value=20.0, value=8.0, step=0.5) / 100
-            content_creation = st.slider("Content Creation (%)", min_value=0.0, max_value=10.0, value=3.0, step=0.5) / 100
+            paid_advertising = st.slider("Paid Advertising (%)", min_value=5.0, max_value=50.0, value=25.0, step=1.0) / 100
+            content_creation = st.slider("Content Creation (%)", min_value=1.0, max_value=30.0, value=10.0, step=1.0) / 100
         
         with col2:
-            events_and_pr = st.slider("Events & PR (%)", min_value=0.0, max_value=15.0, value=5.0, step=0.5) / 100
-            partner_marketing = st.slider("Partner Marketing (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.5) / 100
+            events_and_pr = st.slider("Events & PR (%)", min_value=1.0, max_value=20.0, value=8.0, step=1.0) / 100
+            partner_marketing = st.slider("Partner Marketing (%)", min_value=1.0, max_value=20.0, value=7.0, step=1.0) / 100
         
-        marketing_efficiency = st.slider("Marketing Efficiency ($ spent per $ ARR acquired)", min_value=0.2, max_value=2.0, value=0.8, step=0.1)
+        st.markdown("##### Marketing Efficiency by Year (Lower values = more efficient)")
+        cols = st.columns(6)
+        marketing_efficiency = {}
+        
+        for i, year in enumerate(range(1, 7)):
+            default_values = [1.0, 0.92, 0.85, 0.8, 0.75, 0.7]
+            with cols[i]:
+                marketing_efficiency[year] = st.slider(
+                    f"Year {year}", 
+                    min_value=0.5, 
+                    max_value=1.5, 
+                    value=default_values[i],
+                    step=0.05,
+                    key=f"mktg_eff_y{year}"
+                )
     
     # Sales Expenses
     with st.expander("Sales Expenses", expanded=True):
-        st.markdown("##### Non-headcount sales expenses")
         col1, col2 = st.columns(2)
         
         with col1:
-            commission_rate = st.slider("Commission Rate (% of new ARR)", min_value=5.0, max_value=20.0, value=10.0, step=0.5) / 100
+            commission_rate = st.slider("Commission Rate (% of New ARR)", min_value=5.0, max_value=30.0, value=15.0, step=1.0) / 100
         
         with col2:
-            tools_and_enablement = st.slider("Tools & Enablement (% of ARR)", min_value=0.0, max_value=5.0, value=2.0, step=0.5) / 100
+            tools_and_enablement = st.slider("Tools & Enablement (% of ARR)", min_value=1.0, max_value=10.0, value=5.0, step=0.5) / 100
     
     # R&D Expenses
     with st.expander("R&D Expenses", expanded=True):
-        st.markdown("##### Non-headcount R&D expenses (as % of ARR)")
+        st.markdown("##### Non-headcount R&D expenses (% of ARR)")
         col1, col2 = st.columns(2)
         
         with col1:
-            cloud_compute = st.slider("Cloud Compute for Training (%)", min_value=0.0, max_value=15.0, value=7.0, step=0.5) / 100
-            research_tools = st.slider("Research Tools & Data (%)", min_value=0.0, max_value=10.0, value=4.0, step=0.5) / 100
+            cloud_compute = st.slider("Cloud Compute for Training (%)", min_value=5.0, max_value=30.0, value=18.0, step=1.0) / 100
         
         with col2:
-            third_party_research = st.slider("Third-Party Research (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.5) / 100
+            research_tools = st.slider("Research Tools & Data (%)", min_value=5.0, max_value=20.0, value=12.0, step=1.0) / 100
+            third_party_research = st.slider("Third-Party Research (%)", min_value=1.0, max_value=15.0, value=8.0, step=1.0) / 100
     
     # G&A Expenses
     with st.expander("G&A Expenses", expanded=True):
         col1, col2 = st.columns(2)
         
         with col1:
-            office_facilities = st.slider("Office & Facilities (fixed monthly $)", min_value=5000, max_value=100000, value=25000, step=5000)
-            per_employee_office = st.slider("Per-Employee Office Cost ($/mo)", min_value=100, max_value=2000, value=500, step=100)
-            
+            office_facilities = st.number_input("Office & Facilities ($/month)", min_value=10000, max_value=200000, value=50000, step=5000)
+            per_employee_office = st.number_input("Per Employee Office Cost ($/month)", min_value=500, max_value=5000, value=1500, step=100)
+        
         with col2:
-            software_tools = st.slider("Software & Tools (% of ARR)", min_value=1.0, max_value=10.0, value=3.0, step=0.5) / 100
-            legal_accounting = st.slider("Legal & Accounting (% of ARR)", min_value=0.5, max_value=5.0, value=1.5, step=0.5) / 100
-            insurance = st.slider("Insurance (% of ARR)", min_value=0.5, max_value=5.0, value=1.0, step=0.5) / 100
+            software_tools = st.number_input("Software & Tools ($/employee/month)", min_value=200, max_value=3000, value=1000, step=100)
+            legal_accounting = st.number_input("Legal & Accounting ($/month)", min_value=5000, max_value=100000, value=25000, step=5000)
+            insurance = st.number_input("Insurance ($/month)", min_value=5000, max_value=50000, value=15000, step=1000)
     
-    # One-Time Expenses
-    with st.expander("One-Time Expenses", expanded=True):
-        st.markdown("##### Add significant one-time expenses")
+    # One-time Expenses
+    with st.expander("One-time Expenses", expanded=True):
+        st.markdown("##### Major one-time and periodic expenses")
         
-        # Initialize the one_time_expenses list in session state if it doesn't exist
-        if 'one_time_expenses' not in st.session_state:
-            st.session_state.one_time_expenses = []
-            
-        # Function to add a new expense with current values
-        def add_expense():
-            if len(st.session_state.new_expense_name) > 0:
-                new_expense = {
-                    'name': st.session_state.new_expense_name,
-                    'amount': st.session_state.new_expense_amount,
-                    'month': st.session_state.new_expense_month
-                }
-                st.session_state.one_time_expenses.append(new_expense)
-                # We'll use a form reset flag instead of directly modifying widget values
-                st.session_state.expense_form_submitted = True
+        # Initialize the expenses in session state if not present
+        if 'onetime_expenses' not in st.session_state:
+            # Default values for initialization
+            default_expenses = [
+                [3, 'office', 750000, 'Office setup and expansion'],
+                [9, 'marketing', 500000, 'Major product launch campaign'],
+                [15, 'software', 350000, 'Enterprise software licenses'],
+                [17, 'research', 1200000, 'Major AI model training run'],
+                [21, 'marketing', 600000, 'Industry conference sponsorship']
+            ]
+            st.session_state.onetime_expenses = default_expenses
         
-        # Function to remove an expense
-        def remove_expense(index):
-            st.session_state.one_time_expenses.pop(index)
+        # Display the header row with labels
+        header_cols = st.columns([1, 1, 1, 2, 0.5])
+        header_cols[0].markdown("**Month**")
+        header_cols[1].markdown("**Category**")
+        header_cols[2].markdown("**Amount ($)**")
+        header_cols[3].markdown("**Description**")
         
-        # Show current expenses in a table with delete buttons
-        if st.session_state.one_time_expenses:
-            st.markdown("##### Current One-Time Expenses:")
+        # Container for expenses - this helps with the dynamic UI
+        expenses_container = st.container()
+        
+        # Prepare the list to collect updated expenses
+        one_time_expenses = []
+        
+        # Display each expense with a delete button
+        with expenses_container:
+            # Make a copy to avoid modification during iteration
+            expenses_to_remove = []
             
-            # Create a table layout for expenses
-            col_headers, *expense_rows = st.columns([3, 2, 2, 1])
-            with col_headers:
-                st.markdown("**Expense Name**")
-            with expense_rows[0]:
-                st.markdown("**Amount ($)**")
-            with expense_rows[1]:
-                st.markdown("**Month**") 
-            with expense_rows[2]:
-                st.markdown("**Actions**")
-            
-            # Display each expense with a remove button
-            for i, expense in enumerate(st.session_state.one_time_expenses):
-                col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+            for i, expense in enumerate(st.session_state.onetime_expenses):
+                col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 2, 0.5])
+                
+                # Get current values from the expense
+                current_month, current_category, current_amount, current_description = expense
+                
                 with col1:
-                    st.text(expense['name'])
+                    month = st.number_input(
+                        f"Month",
+                        min_value=1, 
+                        max_value=72, 
+                        value=current_month,
+                        step=1,
+                        key=f"onetime_month_{i}"
+                    )
+                
                 with col2:
-                    st.text(f"${expense['amount']:,}")
+                    category = st.selectbox(
+                        f"Category",
+                        ['office', 'marketing', 'software', 'research', 'legal', 'infrastructure', 'other'],
+                        index=['office', 'marketing', 'software', 'research', 'legal', 'infrastructure', 'other'].index(current_category),
+                        key=f"onetime_cat_{i}"
+                    )
+                
                 with col3:
-                    st.text(str(expense['month']))
+                    amount = st.number_input(
+                        f"Amount", 
+                        min_value=0, 
+                        max_value=10000000,
+                        value=current_amount,
+                        step=50000,
+                        key=f"onetime_amount_{i}"
+                    )
+                
                 with col4:
-                    # Create a unique key for each remove button
-                    if st.button("🗑️", key=f"remove_expense_{i}"):
-                        remove_expense(i)
-                        st.rerun()
-        
-        # Add a new expense
-        st.markdown("##### Add New Expense")
-        col1, col2, col3 = st.columns(3)
-        
-        # Initialize state variables if they don't exist or reset if form was submitted
-        if 'new_expense_name' not in st.session_state or st.session_state.get('expense_form_submitted', False):
-            st.session_state.new_expense_name = ""
-        if 'new_expense_amount' not in st.session_state or st.session_state.get('expense_form_submitted', False):
-            st.session_state.new_expense_amount = 100000
-        if 'new_expense_month' not in st.session_state or st.session_state.get('expense_form_submitted', False):
-            st.session_state.new_expense_month = 6
-            
-        # Reset the submission flag
-        if st.session_state.get('expense_form_submitted', False):
-            st.session_state.expense_form_submitted = False
-            
-        with col1:
-            st.text_input("Expense Name", key="new_expense_name")
-        
-        with col2:
-            st.number_input("Amount ($)", min_value=10000, max_value=10000000, step=10000, key="new_expense_amount")
-        
-        with col3:
-            st.number_input("Month (from start)", min_value=1, max_value=72, step=1, key="new_expense_month")
-        
-        if st.button("Add Expense"):
-            add_expense()
-            st.rerun()
-            
-        # Use the session state list for the model
-        one_time_expenses = st.session_state.one_time_expenses.copy()
-    
-    # Run model button
-    with st.container():
-        run_col1, run_col2 = st.columns([3, 1])
-        
-        with run_col1:
-            st.markdown("### Ready to Run the Model?")
-            st.markdown("Click the button to run the financial model with your selected parameters and growth strategy.")
-        
-        with run_col2:
-            run_button = st.button("Run Financial Model", type="primary", on_click=run_models_callback, key="run_model_btn_tab")
-    
-    if st.session_state.run_button_clicked:
-        with st.spinner("Running the financial model..."):
-            # Construct the revenue configuration
-            revenue_config = {
-                'start_date': start_date.strftime("%Y-%m-%d"),
-                'projection_months': projection_months,
-                'segments': segments,
-                'initial_arr': initial_arr,
-                'initial_customers': initial_customers,
-                'contract_length': contract_length,
-                'churn_rates': churn_rates,
-                'annual_price_increases': annual_price_increases,
-                # Use customized baseline S-curve parameters if available, otherwise use the ones from the Growth Parameters tab
-                's_curve': st.session_state.baseline_scurve if 'baseline_scurve' in st.session_state else s_curve_params,
-                'seasonality': seasonality
-            }
-            
-            # Construct the cost configuration
-            cost_config = {
-                'start_date': start_date.strftime("%Y-%m-%d"),
-                'projection_months': projection_months,
-                'cogs': {
-                    'cloud_hosting': cloud_hosting,
-                    'customer_support': customer_support,
-                    'third_party_apis': third_party_apis,
-                    'professional_services': professional_services
-                },
-                'headcount': headcount,
-                'salary': {
-                    'annual_increase': annual_increase,
-                    'benefits_multiplier': benefits_multiplier,
-                    'payroll_tax_rate': payroll_tax_rate,
-                    'bonus_rate': bonus_rate,
-                    'equity_compensation': equity_compensation
-                },
-                'marketing_expenses': {
-                    'paid_advertising': paid_advertising,
-                    'content_creation': content_creation,
-                    'events_and_pr': events_and_pr,
-                    'partner_marketing': partner_marketing
-                },
-                'marketing_efficiency': marketing_efficiency,
-                'sales_expenses': {
-                    'commission_rate': commission_rate,
-                    'tools_and_enablement': tools_and_enablement
-                },
-                'r_and_d_expenses': {
-                    'cloud_compute_for_training': cloud_compute,
-                    'research_tools_and_data': research_tools,
-                    'third_party_research': third_party_research
-                },
-                'g_and_a_expenses': {
-                    'office_and_facilities': office_facilities,
-                    'per_employee_office_cost': per_employee_office,
-                    'software_and_tools': software_tools,
-                    'legal_and_accounting': legal_accounting,
-                    'insurance': insurance
-                },
-                'one_time_expenses': {
-                    'items': [[expense['month']-1, expense['name'].split()[0].lower(), expense['amount'], expense['name']] for expense in one_time_expenses]
-                }
-            }
-            
-            # Run model with current configuration
-            try:
-                # Import the real function and wrap it to match our expected parameters
-                def run_model_wrapper(revenue_config, cost_config, initial_investment):
-                    from app import run_integrated_financial_model
-                    
-                    # Select the appropriate growth profile
-                    if strategy_type == "Standard S-Curve Profiles":
-                        # Access the growth_profile from the global scope
-                        profile_value = growth_profile
-                        print(f"Using S-curve profile: {profile_value}")
-                        return run_integrated_financial_model(
-                            initial_investment=initial_investment,
-                            growth_profile=profile_value
-                        )
-                    else:
-                        # For other strategies, use baseline but don't apply a growth profile multiplier
-                        print(f"Using strategy type: {strategy_type}")
-                        return run_integrated_financial_model(
-                            initial_investment=initial_investment,
-                            growth_profile="baseline"
-                        )
+                    description = st.text_input(
+                        f"Description",
+                        value=current_description,
+                        key=f"onetime_desc_{i}"
+                    )
                 
-                st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = run_model_wrapper(
-                    revenue_config,
-                    cost_config,
-                    initial_investment
-                )
+                with col5:
+                    # Delete button for this expense
+                    if st.button("🗑️", key=f"delete_expense_{i}"):
+                        expenses_to_remove.append(i)
                 
-                st.session_state.models_ready = True
-                st.success("Model run complete! Check the Results & Charts tab to view the results.")
-                
-            except Exception as e:
-                st.error(f"Error running the model: {str(e)}")
-                st.session_state.models_ready = False
+                # Only add non-zero expenses to the updated list
+                if amount > 0:
+                    one_time_expenses.append([month, category, amount, description])
+            
+            # Remove items marked for deletion
+            if expenses_to_remove:
+                for idx in sorted(expenses_to_remove, reverse=True):
+                    st.session_state.onetime_expenses.pop(idx)
+                st.rerun()  # Rerun to update the UI
+        
+        # Add new expense button
+        if st.button("➕ Add Expense", key="add_expense_btn"):
+            # Add a new empty expense
+            st.session_state.onetime_expenses.append([1, 'office', 500000, "New one-time expense"])
+            st.rerun()  # Rerun to update the UI
+        
+        # Update the session state with the current expenses
+        st.session_state.onetime_expenses = one_time_expenses
     
     # Save & Load Configuration
     st.subheader("Save/Load Configuration")
@@ -2528,23 +2444,8 @@ with tab3:
                         # Update one-time expenses
                         if 'one_time_expenses' in loaded_config and 'items' in loaded_config['one_time_expenses']:
                             expense_items = loaded_config['one_time_expenses']['items']
-                            
-                            # Convert from saved format to session state format
-                            converted_expenses = []
-                            for item in expense_items:
-                                # Check if it's already in the dictionary format
-                                if isinstance(item, dict) and 'name' in item and 'amount' in item and 'month' in item:
-                                    converted_expenses.append(item)
-                                # Otherwise, assume it's in the list format [month_idx, category, amount, description]
-                                elif isinstance(item, list) and len(item) >= 4:
-                                    converted_expenses.append({
-                                        'name': item[3],  # Full description
-                                        'amount': item[2],  # Amount
-                                        'month': item[0] + 1  # Convert back to 1-indexed month
-                                    })
-                            
                             # Replace the existing expenses with the loaded ones
-                            st.session_state.one_time_expenses = converted_expenses
+                            st.session_state.onetime_expenses = expense_items
                         
                         # Try to rerun app to apply changes
                         try:
@@ -2556,6 +2457,514 @@ with tab3:
                     st.error(f"Invalid configuration format. Missing keys: {', '.join(missing_keys)}")
             except Exception as e:
                 st.error(f"Error loading configuration: {str(e)}")
+
+# Tab 3: Cost Parameters
+with tab3:
+    st.header("Cost Model Parameters")
+    
+    # COGS Parameters
+    with st.expander("COGS (Cost of Goods Sold)", expanded=True):
+        st.markdown("##### COGS as percentage of ARR")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            cloud_hosting = st.slider("Cloud Hosting (%)", min_value=1.0, max_value=30.0, value=18.0, step=0.5) / 100
+            customer_support = st.slider("Customer Support (%)", min_value=1.0, max_value=20.0, value=8.0, step=0.5) / 100
+        
+        with col2:
+            third_party_apis = st.slider("Third-Party APIs (%)", min_value=1.0, max_value=20.0, value=6.0, step=0.5) / 100
+            professional_services = st.slider("Professional Services (%)", min_value=0.0, max_value=10.0, value=3.0, step=0.5) / 100
+    
+    # Headcount Parameters
+    with st.expander("Headcount & Salaries", expanded=True):
+        headcount_tabs = st.tabs([
+            "Engineering", "Product", "Sales", "Marketing", 
+            "Customer Success", "G&A", "Research"
+        ])
+        
+        # Initialize headcount dictionaries
+        headcount = {}
+        
+        # Engineering tab
+        with headcount_tabs[0]:
+            st.markdown("##### Engineering Team")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                eng_starting = st.number_input("Starting Count", min_value=1, max_value=50, value=10, step=1)
+                eng_salary = st.number_input("Average Salary ($)", min_value=50000, max_value=300000, value=160000, step=10000)
+            
+            with col2:
+                st.markdown("##### Growth Factors by Year")
+                eng_growth = {}
+                for year in range(1, 7):
+                    default_values = [1.5, 1.8, 1.6, 1.4, 1.3, 1.2]
+                    eng_growth[year] = st.slider(
+                        f"Year {year} Growth",
+                        min_value=0.0,
+                        max_value=5.0,
+                        value=default_values[year-1],
+                        step=0.1
+                    )
+            
+            acceleration_years = st.multiselect(
+                "Years to Accelerate Growth",
+                list(range(1, 7)),
+                default=[1, 2]
+            )
+            
+            deceleration_years = st.multiselect(
+                "Years to Decelerate Growth",
+                list(range(1, 7)),
+                default=[5, 6]
+            )
+        
+        with col2:
+            accel_multiplier = st.slider(
+                "Acceleration Multiplier",
+                min_value=1.1,
+                max_value=5.0,
+                value=2.0,
+                step=0.1
+            )
+            
+            decel_multiplier = st.slider(
+                "Deceleration Multiplier",
+                min_value=0.1,
+                max_value=0.9,
+                value=0.5,
+                step=0.1
+            )
+    
+    elif strategy_type == "Year-by-Year Custom Strategy":
+        st.subheader("Year-by-Year Custom Strategy")
+        st.markdown("Set specific growth multipliers for each segment by year")
+        
+        # Initialize the segment year multipliers
+        segment_year_multipliers = {}
+        
+        segment_tabs = st.tabs(segments)
+        
+        for i, segment in enumerate(segments):
+            with segment_tabs[i]:
+                st.markdown(f"##### {segment} Growth Multipliers")
+                
+                segment_year_multipliers[segment] = {}
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    for year in range(1, 3):
+                        segment_year_multipliers[segment][year] = st.slider(
+                            f"Year {year} Multiplier",
+                            min_value=0.1,
+                            max_value=5.0,
+                            value=2.0 if segment == 'Enterprise' and year <= 2 else 1.0,
+                            step=0.1,
+                            key=f"{segment}_y{year}_multiplier"
+                        )
+                
+                with col2:
+                    for year in range(3, 5):
+                        segment_year_multipliers[segment][year] = st.slider(
+                            f"Year {year} Multiplier",
+                            min_value=0.1,
+                            max_value=5.0,
+                            value=1.5 if segment == 'Mid-Market' and 3 <= year <= 4 else 1.0,
+                            step=0.1,
+                            key=f"{segment}_y{year}_multiplier"
+                        )
+                
+                with col3:
+                    for year in range(5, 7):
+                        segment_year_multipliers[segment][year] = st.slider(
+                            f"Year {year} Multiplier",
+                            min_value=0.1,
+                            max_value=5.0,
+                            value=2.0 if segment == 'SMB' and year >= 5 else 0.8 if segment == 'Enterprise' and year >= 5 else 1.0,
+                            step=0.1,
+                            key=f"{segment}_y{year}_multiplier"
+                        )
+                
+                # Display the strategy visually
+                if st.checkbox(f"Show {segment} Strategy Visualization", value=False):
+                    years = list(range(1, 7))
+                    multipliers = [segment_year_multipliers[segment][y] for y in years]
+                    
+                    fig, ax = plt.subplots(figsize=(10, 4))
+                    ax.bar(years, multipliers, color='steelblue')
+                    ax.axhline(y=1.0, color='red', linestyle='--', alpha=0.7)
+                    
+                    for i, v in enumerate(multipliers):
+                        ax.text(i+1, v+0.1, f"{v:.1f}x", ha='center')
+                    
+                    ax.set_xlabel('Year')
+                    ax.set_ylabel('Growth Multiplier')
+                    ax.set_title(f'{segment} Growth Strategy')
+                    ax.set_xticks(years)
+                    ax.set_ylim(0, max(multipliers) + 0.5)
+                    
+                    st.pyplot(fig)
+    
+    elif strategy_type == "Enterprise-First Strategy":
+        st.subheader("Enterprise-First Strategy")
+        st.markdown("""
+        This is a predefined strategy that:
+        - Focuses on enterprise and mid-market in years 1-2
+        - Shifts to mid-market and SMB in years 3-4
+        - Takes a more balanced approach in years 5-6
+        """)
+        
+        # Show the strategy data
+        enterprise_first_strategy = {
+            'Enterprise': {
+                1: 2.0,  # Strong focus in year 1
+                2: 1.8,  # Strong focus in year 2
+                3: 1.4,  # Moderate focus in year 3
+                4: 1.2,  # Less focus in year 4
+                5: 1.0,  # Back to baseline in year 5
+                6: 0.9,  # Slight deceleration in year 6
+            },
+            'Mid-Market': {
+                1: 1.5,  # Good focus in year 1
+                2: 1.7,  # Increased focus in year 2
+                3: 1.8,  # Peak focus in year 3
+                4: 1.6,  # Still strong in year 4
+                5: 1.3,  # Moderate focus in year 5
+                6: 1.1,  # Slight focus in year 6
+            },
+            'SMB': {
+                1: 0.7,  # Low focus initially
+                2: 0.8,  # Still low focus
+                3: 1.3,  # Increased focus in year 3
+                4: 1.7,  # Strong focus in year 4
+                5: 2.0,  # Peak focus in year 5
+                6: 2.2,  # Continued strong focus in year 6
+            }
+        }
+        
+        # Display as a table first
+        strategy_df = pd.DataFrame({
+            'Year': list(range(1, 7)),
+            'Enterprise': [enterprise_first_strategy['Enterprise'][y] for y in range(1, 7)],
+            'Mid-Market': [enterprise_first_strategy['Mid-Market'][y] for y in range(1, 7)],
+            'SMB': [enterprise_first_strategy['SMB'][y] for y in range(1, 7)]
+        })
+        
+        st.table(strategy_df.style.format('{:.1f}x'))
+        
+        # Display as a chart
+        fig, ax = plt.subplots(figsize=(10, 5))
+        x = list(range(1, 7))
+        
+        for segment in segments:
+            y = [enterprise_first_strategy[segment][year] for year in range(1, 7)]
+            ax.plot(x, y, marker='o', linewidth=2, label=segment)
+        
+        ax.axhline(y=1.0, color='gray', linestyle='--', alpha=0.7)
+        ax.set_xticks(x)
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Growth Multiplier')
+        ax.set_title('Enterprise-First Growth Strategy')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        st.pyplot(fig)
+        
+    elif strategy_type == "AI Regulation Impact Strategy":
+        st.subheader("AI Regulation Impact Strategy")
+        st.markdown("""
+        ### Regulatory Impact on AI Adoption
+        
+        This strategy models the impact of AI regulations starting in 2026:
+        
+        - **Enterprise** customers lead adoption (years 1-3) due to:
+          - Greater resources for regulatory compliance
+          - Established legal teams to navigate regulations
+          - Ability to invest in compliance frameworks
+        
+        - **Mid-Market** follows with moderate delay (years 2-4) as:
+          - Compliance frameworks become more established
+          - Third-party compliance solutions emerge
+        
+        - **SMB** adoption is significantly delayed (years 5-6) until:
+          - Regulations stabilize and become predictable
+          - Turnkey compliance solutions become affordable
+          - Industry standards simplify implementation
+        """)
+        
+        # Show the strategy data
+        regulatory_impact_strategy = {
+            'Enterprise': {
+                1: 2.2,  # Very strong focus in year 1 (early adopters with resources for compliance)
+                2: 2.0,  # Strong focus in year 2
+                3: 1.6,  # Continued strong focus as regulations solidify
+                4: 1.3,  # Moderate focus in year 4
+                5: 1.1,  # Slightly above baseline in year 5
+                6: 1.0,  # Baseline in year 6
+            },
+            'Mid-Market': {
+                1: 1.7,  # Good focus in year 1
+                2: 1.9,  # Increased focus in year 2 as mid-market follows enterprise
+                3: 2.0,  # Peak focus in year 3 as mid-market adoption accelerates
+                4: 1.8,  # Still strong in year 4
+                5: 1.5,  # Moderate focus in year 5
+                6: 1.3,  # Continued moderate focus in year 6
+            },
+            'SMB': {
+                1: 0.3,  # Minimal focus initially due to regulatory barriers
+                2: 0.4,  # Still very low focus due to compliance costs
+                3: 0.6,  # Gradual increase as compliance frameworks become accessible
+                4: 1.0,  # Reaching baseline as regulations stabilize
+                5: 1.8,  # Accelerating as compliance becomes more standardized
+                6: 2.5,  # Strong catch-up growth as barriers lower and solutions become turnkey
+            }
+        }
+        
+        # Display as a table first
+        strategy_df = pd.DataFrame({
+            'Year': list(range(1, 7)),
+            'Enterprise': [regulatory_impact_strategy['Enterprise'][y] for y in range(1, 7)],
+            'Mid-Market': [regulatory_impact_strategy['Mid-Market'][y] for y in range(1, 7)],
+            'SMB': [regulatory_impact_strategy['SMB'][y] for y in range(1, 7)]
+        })
+        
+        st.table(strategy_df.style.format('{:.1f}x'))
+        
+        # Display as a chart
+        fig, ax = plt.subplots(figsize=(10, 5))
+        x = list(range(1, 7))
+        
+        for segment in segments:
+            y = [regulatory_impact_strategy[segment][year] for year in range(1, 7)]
+            ax.plot(x, y, marker='o', linewidth=2, label=segment)
+        
+        ax.axhline(y=1.0, color='gray', linestyle='--', alpha=0.7)
+        ax.set_xticks(x)
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Growth Multiplier')
+        ax.set_title('AI Regulatory Impact Growth Strategy')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Add vertical line showing when regulations begin
+        ax.axvline(x=1.5, color='red', linestyle='--', alpha=0.7)
+        ax.text(1.5, ax.get_ylim()[1]*0.95, 'AI Regulations\nBegin', ha='center', va='top', 
+                color='red', backgroundcolor='white', alpha=0.8)
+        
+        st.pyplot(fig)
+    
+    elif strategy_type == "Optimization for Breakeven":
+        st.subheader("Optimize for Breakeven")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            target_month = st.slider(
+                "Target Month to Achieve Breakeven",
+                min_value=12,
+                max_value=60,
+                value=24,
+                step=1
+            )
+            
+            min_multiplier = st.slider(
+                "Minimum Growth Multiplier",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.4,
+                step=0.1
+            )
+        
+        with col2:
+            base_profile = st.selectbox(
+                "Base Growth Profile",
+                ["baseline", "conservative", "aggressive", "hypergrowth"],
+                index=0,
+                format_func=lambda x: x.capitalize()
+            )
+            
+            max_multiplier = st.slider(
+                "Maximum Growth Multiplier",
+                min_value=1.1,
+                max_value=5.0,
+                value=3.0,
+                step=0.1
+            )
+    
+    elif strategy_type == "Optimization for Series B":
+        st.subheader("Optimize for Series B Qualification")
+        st.markdown("""
+        Series B qualification typically requires:
+        - $10M+ ARR
+        - 100%+ YoY growth rate
+        """)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            target_month_sb = st.slider(
+                "Target Month to Achieve Series B Criteria",
+                min_value=18,
+                max_value=60,
+                value=36,
+                step=1
+            )
+            
+            min_multiplier_sb = st.slider(
+                "Minimum Growth Multiplier",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.6,
+                step=0.1,
+                key="sb_min_mult"
+            )
+        
+        with col2:
+            target_arr = st.number_input(
+                "Target ARR ($)",
+                min_value=5000000,
+                max_value=20000000,
+                value=10000000,
+                step=1000000
+            )
+            
+            target_growth_rate = st.slider(
+                "Target YoY Growth Rate (%)",
+                min_value=50,
+                max_value=200,
+                value=100,
+                step=10
+            ) / 100
+            
+            max_multiplier_sb = st.slider(
+                "Maximum Growth Multiplier",
+                min_value=1.1,
+                max_value=5.0,
+                value=4.0,
+                step=0.1,
+                key="sb_max_mult"
+            )
+
+    # Reminder to use the run model button at the top
+    with st.container():
+        st.info("💡 Use the '🚀 Run Financial Model' button at the top of the page to run the model with your current settings.")
+    
+    if st.session_state.run_button_clicked:
+        with st.spinner("Running the financial model..."):
+            # Construct the revenue configuration
+            revenue_config = {
+                'start_date': start_date.strftime("%Y-%m-%d"),
+                'projection_months': projection_months,
+                'segments': segments,
+                'initial_arr': initial_arr,
+                'initial_customers': initial_customers,
+                'contract_length': contract_length,
+                'churn_rates': churn_rates,
+                'annual_price_increases': annual_price_increases,
+                # Use customized baseline S-curve parameters if available, otherwise use the ones from the Growth Parameters tab
+                's_curve': st.session_state.baseline_scurve if 'baseline_scurve' in st.session_state else s_curve_params,
+                'seasonality': seasonality
+            }
+            
+            # Construct the cost configuration
+            cost_config = {
+                'start_date': start_date.strftime("%Y-%m-%d"),
+                'projection_months': projection_months,
+                'cogs': {
+                    'cloud_hosting': cloud_hosting,
+                    'customer_support': customer_support,
+                    'third_party_apis': third_party_apis,
+                    'professional_services': professional_services
+                },
+                'headcount': headcount,
+                'salary': {
+                    'annual_increase': annual_increase,
+                    'benefits_multiplier': benefits_multiplier,
+                    'payroll_tax_rate': payroll_tax_rate,
+                    'bonus_rate': bonus_rate,
+                    'equity_compensation': equity_compensation
+                },
+                'marketing_expenses': {
+                    'paid_advertising': paid_advertising,
+                    'content_creation': content_creation,
+                    'events_and_pr': events_and_pr,
+                    'partner_marketing': partner_marketing
+                },
+                'marketing_efficiency': marketing_efficiency,
+                'sales_expenses': {
+                    'commission_rate': commission_rate,
+                    'tools_and_enablement': tools_and_enablement
+                },
+                'r_and_d_expenses': {
+                    'cloud_compute_for_training': cloud_compute,
+                    'research_tools_and_data': research_tools,
+                    'third_party_research': third_party_research
+                },
+                'g_and_a_expenses': {
+                    'office_and_facilities': office_facilities,
+                    'per_employee_office_cost': per_employee_office,
+                    'software_and_tools': software_tools,
+                    'legal_and_accounting': legal_accounting,
+                    'insurance': insurance
+                },
+                'one_time_expenses': {
+                    'items': one_time_expenses
+                }
+            }
+            
+            # Run the appropriate model based on the selected strategy
+            try:
+                if strategy_type == "Standard S-Curve Profiles":
+                    st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = run_with_s_curve_profile(
+                        growth_profile=growth_profile,
+                        initial_investment=initial_investment
+                    )
+                
+                elif strategy_type == "Acceleration/Deceleration Strategy":
+                    st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = run_with_acceleration_strategy(
+                        target_segments=target_segments,
+                        acceleration_years=acceleration_years,
+                        deceleration_years=deceleration_years,
+                        accel_multiplier=accel_multiplier,
+                        decel_multiplier=decel_multiplier,
+                        initial_investment=initial_investment
+                    )
+                
+                elif strategy_type == "Year-by-Year Custom Strategy":
+                    st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = run_with_year_by_year_strategy(
+                        segment_year_multipliers=segment_year_multipliers,
+                        initial_investment=initial_investment
+                    )
+                
+                elif strategy_type == "Enterprise-First Strategy":
+                    st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = run_enterprise_first_strategy(
+                        initial_investment=initial_investment
+                    )
+                
+                elif strategy_type == "AI Regulation Impact Strategy":
+                    st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = run_regulatory_impact_strategy(
+                        initial_investment=initial_investment
+                    )
+                
+                elif strategy_type == "Optimization for Breakeven":
+                    st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = optimize_for_breakeven(
+                        target_month=target_month,
+                        growth_profile=base_profile,
+                        initial_investment=initial_investment
+                    )
+                
+                elif strategy_type == "Optimization for Series B":
+                    st.session_state.financial_model, st.session_state.revenue_model, st.session_state.cost_model, st.session_state.optimization_results = optimize_for_series_b(
+                        target_month=target_month_sb,
+                        initial_investment=initial_investment
+                    )
+                
+                st.session_state.models_ready = True
+                st.success("Model run complete! Check the Results & Charts tab to view the results.")
+                
+            except Exception as e:
+                st.error(f"Error running the model: {str(e)}")
+                st.session_state.models_ready = False
 
 # Tab 5: Results & Charts
 with tab5:
