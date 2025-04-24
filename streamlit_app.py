@@ -2096,7 +2096,20 @@ with tab3:
         
         # Initialize the one_time_expenses list in session state if it doesn't exist
         if 'one_time_expenses' not in st.session_state:
-            st.session_state.one_time_expenses = []
+            # Default expenses from app.py as a starting point
+            default_expenses = [
+                {'name': 'Office setup and expansion', 'amount': 750000, 'month': 4},  # month_idx 3 + 1
+                {'name': 'Major product launch campaign', 'amount': 500000, 'month': 10},  # month_idx 9 + 1
+                {'name': 'Enterprise software licenses', 'amount': 350000, 'month': 16},  # month_idx 15 + 1
+                {'name': 'Major AI model training run', 'amount': 1200000, 'month': 18},  # month_idx 17 + 1
+                {'name': 'Industry conference sponsorship', 'amount': 600000, 'month': 22},  # month_idx 21 + 1
+                {'name': 'Office expansion', 'amount': 400000, 'month': 25},  # month_idx 24 + 1
+                {'name': 'IP protection and legal work', 'amount': 300000, 'month': 28},  # month_idx 27 + 1
+                {'name': 'New office location setup', 'amount': 800000, 'month': 37},  # month_idx 36 + 1
+                {'name': 'Advanced AI model development', 'amount': 1500000, 'month': 42},  # month_idx 41 + 1
+                {'name': 'Major infrastructure upgrade', 'amount': 1000000, 'month': 49},  # month_idx 48 + 1
+            ]
+            st.session_state.one_time_expenses = default_expenses
             
         # Function to add a new expense with current values
         def add_expense():
