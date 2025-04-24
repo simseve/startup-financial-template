@@ -1050,16 +1050,72 @@ def optimize_for_revenue_target(target_revenue=5000000, target_month=36, growth_
     """
     print(f"Optimizing for ${target_revenue/1000000:.2f}M monthly revenue at month {target_month}...")
     
-    # Import the revenue target optimization function
-    from optimize_for_revenue_target import optimize_for_revenue_target as run_revenue_optimization
+    # Load configuration
+    revenue_config = load_config("configs/revenue_config.json")
+    cost_config = load_config("configs/cost_config.json")
     
-    # Run the optimization
-    return run_revenue_optimization(
-        target_revenue=target_revenue,
-        target_month=target_month,
-        growth_profile=growth_profile,
-        initial_investment=initial_investment
-    )
+    # Create base models
+    revenue_model = SaaSGrowthModel(revenue_config)
+    cost_model = AISaaSCostModel(cost_config)
+    
+    # Calculate the number of customers needed to reach the target revenue
+    target_arr = target_revenue * 12  # Convert monthly revenue to ARR
+    
+    # Use the apply_growth_profile method to set up initial growth rates
+    revenue_model = revenue_model.apply_growth_profile(growth_profile)
+    
+    # Run the model to get segment distribution 
+    revenue_model.run_model()
+    
+    # Get the data at the target month
+    monthly_data = revenue_model.get_monthly_data()
+    target_month_data = monthly_data[monthly_data['month_number'] == target_month].iloc[0]
+    
+    # Calculate the ratio of current ARR to target ARR
+    current_arr = target_month_data['total_arr']
+    arr_ratio = target_arr / current_arr if current_arr > 0 else 1.0
+    
+    # Scale customer counts to achieve target revenue
+    segment_multipliers = {segment: arr_ratio for segment in revenue_config['segments']}
+    
+    # Apply the scaled customer counts
+    revenue_model = revenue_model.apply_custom_segment_profiles(segment_multipliers)
+    
+    # Run the models
+    revenue_model.run_model()
+    cost_model.run_model(revenue_model)
+    financial_model = SaaSFinancialModel(revenue_model, cost_model)
+    financial_model.run_model()
+    
+    # Calculate optimization results
+    monthly_data = revenue_model.get_monthly_data()
+    target_month_data = monthly_data[monthly_data['month_number'] == target_month].iloc[0]
+    
+    # For monthly revenue, use ARR / 12 since monthly_revenue field might not exist
+    achieved_arr = target_month_data['total_arr']
+    achieved_revenue = achieved_arr / 12  # Convert ARR to monthly revenue
+    
+    optimization_results = {
+        'target': 'monthly_revenue',
+        'target_month': target_month,
+        'target_revenue': target_revenue,
+        'achieved_revenue': achieved_revenue,
+        'achieved_arr': achieved_arr,
+        'revenue_ratio': achieved_revenue / target_revenue,
+        'customer_multiplier': arr_ratio
+    }
+    
+    # Save optimization results
+    os.makedirs('reports/optimization', exist_ok=True)
+    pd.DataFrame([optimization_results]).to_csv('reports/optimization/revenue_target_results.csv', index=False)
+    
+    # Print optimization results
+    print(f"\nRevenue Target Optimization Results:")
+    print(f"Target: ${target_revenue/1000000:.2f}M monthly revenue by month {target_month}")
+    print(f"Achieved: ${achieved_revenue/1000000:.2f}M monthly revenue")
+    print(f"Customer scaling factor: {arr_ratio:.2f}x")
+    
+    return financial_model, revenue_model, cost_model, optimization_results
     
 def optimize_for_annual_revenue(target_annual_revenue=360000000, target_year=5, initial_investment=20000000):
     """
@@ -1081,15 +1137,150 @@ def optimize_for_annual_revenue(target_annual_revenue=360000000, target_year=5, 
     """
     print(f"Optimizing for ${target_annual_revenue/1000000:.2f}M annual revenue by year {target_year}...")
     
-    # Import the annual revenue target optimization function
-    from optimize_for_annual_revenue import optimize_for_annual_revenue as run_annual_revenue_optimization
+    # Load configuration
+    revenue_config = load_config("configs/revenue_config.json")
+    cost_config = load_config("configs/cost_config.json")
     
-    # Run the optimization
-    return run_annual_revenue_optimization(
-        target_annual_revenue=target_annual_revenue,
-        target_year=target_year,
-        initial_investment=initial_investment
-    )
+    # Create base models
+    revenue_model = SaaSGrowthModel(revenue_config)
+    cost_model = AISaaSCostModel(cost_config)
+    
+    # First, determine the base scale factor needed
+    # Run a baseline model to get the default annual revenue
+    baseline_model = revenue_model.apply_growth_profile("baseline")
+    baseline_model.run_model()
+    baseline_annual = baseline_model.get_annual_data()
+    
+    # Find the revenue for the target year in the baseline model
+    if target_year <= len(baseline_annual):
+        baseline_revenue = baseline_annual.iloc[target_year-1]['total_ending_arr']
+    else:
+        # Use the last year if target year is beyond projection period
+        baseline_revenue = baseline_annual.iloc[-1]['total_ending_arr']
+    
+    # Calculate the basic scaling factor needed
+    scaling_factor = target_annual_revenue / baseline_revenue if baseline_revenue > 0 else 1.0
+    
+    # Create a year-by-year segment strategy with appropriate tapering
+    # Earlier years grow faster, later years taper
+    segment_year_multipliers = {}
+    
+    # Different strategies for different segments
+    for segment in revenue_config['segments']:
+        segment_year_multipliers[segment] = {}
+        
+        # Determine segment-specific strategies
+        if segment == 'Enterprise':
+            # Enterprise segments get more focus in early years, less in later years
+            segment_year_multipliers[segment] = {
+                1: scaling_factor * 1.8,  # Early focus
+                2: scaling_factor * 1.6,
+                3: scaling_factor * 1.4,
+                4: scaling_factor * 1.2,
+                5: scaling_factor * 1.0,
+                6: scaling_factor * 0.8   # Tapered focus
+            }
+        elif segment == 'Mid-Market':
+            # Mid-Market gets balanced focus
+            segment_year_multipliers[segment] = {
+                1: scaling_factor * 1.2,
+                2: scaling_factor * 1.4,
+                3: scaling_factor * 1.5,
+                4: scaling_factor * 1.4,
+                5: scaling_factor * 1.2,
+                6: scaling_factor * 1.0
+            }
+        elif segment == 'SMB':
+            # SMB gets later focus
+            segment_year_multipliers[segment] = {
+                1: scaling_factor * 0.8,
+                2: scaling_factor * 1.0,
+                3: scaling_factor * 1.2,
+                4: scaling_factor * 1.5,
+                5: scaling_factor * 1.8,
+                6: scaling_factor * 2.0
+            }
+    
+    # Apply the year-by-year strategy to the revenue model
+    custom_model = revenue_model.apply_dynamic_growth_strategy(segment_year_multipliers)
+    
+    # Run the models
+    custom_model.run_model()
+    cost_model.run_model(custom_model)
+    financial_model = SaaSFinancialModel(custom_model, cost_model)
+    financial_model.run_model()
+    
+    # Calculate optimization results
+    annual_data = custom_model.get_annual_data()
+    
+    # Get the achieved revenue for the target year
+    if target_year <= len(annual_data):
+        achieved_annual_revenue = annual_data.iloc[target_year-1]['total_ending_arr']
+    else:
+        # Use the last year if target year is beyond projection period
+        achieved_annual_revenue = annual_data.iloc[-1]['total_ending_arr']
+    
+    # Calculate growth rate from previous year
+    if target_year > 1 and target_year <= len(annual_data):
+        previous_year_revenue = annual_data.iloc[target_year-2]['total_ending_arr']
+        growth_rate = (achieved_annual_revenue / previous_year_revenue - 1) * 100 if previous_year_revenue > 0 else 0
+    else:
+        growth_rate = 0
+    
+    optimization_results = {
+        'target': 'annual_revenue',
+        'target_year': target_year,
+        'target_annual_revenue': target_annual_revenue,
+        'achieved_annual_revenue': achieved_annual_revenue,
+        'revenue_ratio': achieved_annual_revenue / target_annual_revenue,
+        'base_scaling_factor': scaling_factor,
+        'yoy_growth_rate': growth_rate
+    }
+    
+    # Save optimization results
+    os.makedirs('reports/optimization', exist_ok=True)
+    pd.DataFrame([optimization_results]).to_csv('reports/optimization/annual_revenue_results.csv', index=False)
+    
+    # Print optimization results
+    print(f"\nAnnual Revenue Optimization Results:")
+    print(f"Target: ${target_annual_revenue/1000000:.2f}M annual revenue by year {target_year}")
+    print(f"Achieved: ${achieved_annual_revenue/1000000:.2f}M annual revenue")
+    print(f"Base scaling factor: {scaling_factor:.2f}x")
+    print(f"Year-over-Year growth rate: {growth_rate:.1f}%")
+    
+    # Create a visually appealing report
+    plt.figure(figsize=(14, 8))
+    
+    # Plot the annual revenue with the target
+    annual_revenue = [data['total_ending_arr'] / 1000000 for _, data in annual_data.iterrows()]
+    years = [data['year'] for _, data in annual_data.iterrows()]
+    
+    plt.bar(years, annual_revenue, color='skyblue', alpha=0.7)
+    
+    # Add a target line
+    if target_year <= len(years):
+        plt.axhline(y=target_annual_revenue/1000000, color='red', linestyle='-', alpha=0.7)
+        plt.plot(target_year, target_annual_revenue/1000000, 'ro', markersize=10)
+        plt.annotate(f'Target: ${target_annual_revenue/1000000:.1f}M', 
+                    xy=(target_year, target_annual_revenue/1000000),
+                    xytext=(target_year-0.5, target_annual_revenue/1000000*1.1),
+                    arrowprops=dict(facecolor='red', shrink=0.05, width=1.5, headwidth=8),
+                    fontsize=12)
+    
+    plt.title(f'Annual Revenue Optimization for Year {target_year}', fontsize=16)
+    plt.xlabel('Year', fontsize=14)
+    plt.ylabel('Annual Revenue ($ Millions)', fontsize=14)
+    plt.grid(True, alpha=0.3)
+    
+    # Add revenue amounts on top of bars
+    for i, revenue in enumerate(annual_revenue):
+        plt.text(years[i], revenue + 5, f'${revenue:.1f}M', ha='center', fontsize=10)
+    
+    # Save the figure
+    os.makedirs('reports/optimization', exist_ok=True)
+    plt.savefig('reports/optimization/annual_revenue_growth.png', bbox_inches='tight', dpi=300)
+    
+    return financial_model, custom_model, cost_model, optimization_results
 
 def main():
     # Parse command line arguments
@@ -1102,6 +1293,7 @@ def main():
         'hypergrowth',
         'breakeven',
         'series_b',
+        'series_b_revenue',
         'revenue_target',
         'annual_revenue',
         'enterprise_first',
@@ -1115,6 +1307,12 @@ def main():
                         help='Target month to achieve breakeven (for breakeven strategy)')
     parser.add_argument('--series-b-target', type=int, default=36,
                         help='Target month to achieve Series B qualification')
+    parser.add_argument('--series-b-revenue-target', type=float, default=30000000,
+                        help='Target annual revenue for Series B readiness')
+    parser.add_argument('--capital-burn-target', type=float, default=0.8,
+                        help='Target percentage of initial capital to use (0.0-1.0)')
+    parser.add_argument('--allow-over-burn', action='store_true',
+                        help='Allow burning more than 100%% of initial capital (implies additional funding)')
     parser.add_argument('--revenue-target', type=float, default=5000000,
                         help='Target monthly revenue to achieve (for revenue_target strategy)')
     parser.add_argument('--revenue-target-month', type=int, default=36,
@@ -1164,16 +1362,21 @@ def main():
 
         # Print optimization results
         if optimization_results:
-            print(f"\nOptimization Results:")
-            print(
-                f"Target: {optimization_results['target']} by month {optimization_results['target_month']}")
-            if optimization_results['achieved_month'] is not None:
-                print(
-                    f"Achieved in month: {optimization_results['achieved_month']}")
+            if 'format_type' in optimization_results and optimization_results['format_type'] == 'series_b_revenue':
+                # We've already printed results for series_b_revenue strategy
+                pass
             else:
-                print(f"Target not achieved within the projection period")
-            print(
-                f"Growth multiplier applied: {optimization_results['growth_multiplier']:.2f}x")
+                print(f"\nOptimization Results:")
+                print(
+                    f"Target: {optimization_results['target']} by month {optimization_results['target_month']}")
+                if 'achieved_month' in optimization_results and optimization_results['achieved_month'] is not None:
+                    print(
+                        f"Achieved in month: {optimization_results['achieved_month']}")
+                else:
+                    print(f"Target not achieved within the projection period")
+                if 'growth_multiplier' in optimization_results:
+                    print(
+                        f"Growth multiplier applied: {optimization_results['growth_multiplier']:.2f}x")
 
     elif args.strategy == 'series_b':
         print(
@@ -1182,19 +1385,77 @@ def main():
             target_month=args.series_b_target,
             initial_investment=args.investment
         )
-
-        # Print optimization results
+    elif args.strategy == 'series_b_revenue':
+        print(f"Optimizing for Series B readiness with ${args.series_b_revenue_target/1000000:.2f}M revenue by month {args.series_b_target}...")
+        
+        # This functionality has been integrated. Run a variation of optimize_for_revenue_target
+        # but with Series B qualification requirements
+        financial_model, revenue_model, cost_model, optimization_results = optimize_for_revenue_target(
+            target_revenue=args.series_b_revenue_target/12,  # Convert annual to monthly target
+            target_month=args.series_b_target,
+            growth_profile="aggressive",  # Use more aggressive profile for Series B
+            initial_investment=args.investment
+        )
+        
+        # Add Series B specific metrics to the results
         if optimization_results:
-            print(f"\nOptimization Results:")
-            print(
-                f"Target: {optimization_results['target']} by month {optimization_results['target_month']}")
-            if optimization_results['achieved_month'] is not None:
-                print(
-                    f"Achieved in month: {optimization_results['achieved_month']}")
-            else:
-                print(f"Target not achieved within the projection period")
-            print(
-                f"Growth multiplier applied: {optimization_results['growth_multiplier']:.2f}x")
+            # Check if we have annual data to calculate YoY growth
+            annual_data = revenue_model.get_annual_data()
+            target_year = (args.series_b_target // 12) + 1
+            
+            # Calculate YoY growth rate if we have enough data
+            yoy_growth_rate = 0
+            if target_year > 1 and target_year <= len(annual_data):
+                current_arr = annual_data.iloc[target_year-1]['total_ending_arr']
+                prev_arr = annual_data.iloc[target_year-2]['total_ending_arr'] 
+                yoy_growth_rate = ((current_arr / prev_arr) - 1) * 100 if prev_arr > 0 else 0
+            
+            # Calculate capital utilization
+            monthly_data = financial_model.get_monthly_data()
+            min_capital = monthly_data['capital'].min()
+            capital_burn = 1 - (min_capital / args.investment)
+            capital_burn = max(0, min(1, capital_burn))  # Constrain between 0 and 1
+            
+            # Determine if Series B qualified (10M+ ARR, 100%+ YoY growth)
+            monthly_at_target = monthly_data[monthly_data['month_number'] == args.series_b_target].iloc[0]
+            arr_at_target = monthly_at_target['total_arr']
+            # ARR is already annual, no need to adjust
+            series_b_qualified = arr_at_target >= args.series_b_revenue_target and yoy_growth_rate >= 100
+            
+            # Add metrics to results
+            optimization_results.update({
+                'target': 'series_b_revenue',
+                'yoy_growth_rate': yoy_growth_rate,
+                'capital_burn_percentage': capital_burn,
+                'series_b_qualified': series_b_qualified,
+                'achieved_annual_revenue': arr_at_target,
+                'format_type': 'series_b_revenue'
+            })
+            
+            # Print Series B specific results
+            print(f"\nSeries B Revenue Optimization Results:")
+            print(f"Target: ${args.series_b_revenue_target/1000000:.2f}M annual revenue by month {args.series_b_target}")
+            print(f"Achieved: ${arr_at_target/1000000:.2f}M annual revenue")
+            print(f"YoY Growth Rate: {yoy_growth_rate:.1f}%")
+            print(f"Capital Utilization: {capital_burn*100:.1f}% of initial investment")
+            print(f"Series B Ready: {'Yes' if series_b_qualified else 'No'}")
+            
+            # Check if we're likely to run out of money
+            if args.allow_over_burn == False and capital_burn > args.capital_burn_target:
+                print("\nWARNING: This growth strategy would utilize {:.1f}% of initial capital,".format(capital_burn*100))
+                print("which exceeds your specified limit of {:.1f}%.".format(args.capital_burn_target*100))
+                print("Consider enabling --allow-over-burn if you plan to raise additional funding.")
+        else:
+            print("\nThe optimization could not find a valid solution that meets both the revenue target")
+            print("and stays within capital limits. The current model indicates that the chosen targets")
+            print("would require more than 100% of the initial investment.")
+            print("\nPossible solutions:")
+            print("1. Increase initial investment (currently ${:.1f}M)".format(args.investment/1000000))
+            print("2. Reduce revenue target (currently ${:.1f}M)".format(args.series_b_revenue_target/1000000))
+            print("3. Extend target timeframe (currently {} months)".format(args.series_b_target))
+            print("4. Create a more efficient cost structure in configs/cost_config_efficient.json")
+            print("5. Accept burning more than 100% of the initial investment (implies additional funding)")
+            return None, None, None, None
                 
     elif args.strategy == 'revenue_target':
         print(
