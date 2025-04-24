@@ -22,3 +22,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Financial outputs are saved to `reports/` directory
 - Run models with default parameters via `app.py`
 - Interactive analysis via `streamlit_app.py`
+
+## Optimization Strategies
+- **Baseline, Conservative, Aggressive, Hypergrowth**: Standard S-curve growth profiles
+- **Breakeven**: Finds the growth multiplier needed to reach breakeven by a target month
+  - `python app.py --strategy breakeven --breakeven-target 24`
+- **Series B**: Optimizes for $10M ARR with 100%+ growth by a target month
+  - `python app.py --strategy series_b --series-b-target 36`
+- **Revenue Target**: Calculates customers needed to reach a specific monthly revenue target
+  - `python app.py --strategy revenue_target --revenue-target 5000000 --revenue-target-month 36`
+- **Annual Revenue Target**: Calculates customers needed to reach a specific annual revenue target
+  - `python app.py --strategy annual_revenue --annual-revenue-target 360000000 --annual-revenue-year 5`
+  - Uses more sophisticated segment-specific growth with year-by-year tapering
+  - Ideal for precise control targeting specific annual revenue goals
+- **Enterprise First**: Strategy focusing on enterprise and mid-market in early years
+- **Regulatory Impact**: Strategy accounting for AI regulation impact on segment adoption
