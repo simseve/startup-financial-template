@@ -169,15 +169,34 @@ python app.py --strategy profile --profile hypergrowth --initial-investment 3500
 - `--strategy`: Business strategy (`baseline` or `profile`)
 - `--profile`: Growth profile when using profile strategy (`conservative`, `baseline`, `aggressive`, `hypergrowth`)
 
-## Interactive Dashboard
+## Interactive Dashboards
 
-The model includes an interactive Streamlit dashboard for real-time adjustments and visualizations:
+### Gradio Dashboard (Recommended)
+
+The model includes a new interactive Gradio dashboard for real-time adjustments and visualizations:
 
 ```bash
-streamlit run streamlit_app.py
+python gradio_app.py
 ```
 
-### Dashboard Features
+### Gradio Dashboard Features
+
+- **Real-time S-Curve Scaling**: Adjust growth curves for each segment and year with scaling factors
+- **Financial Metrics**: Instantly view how parameter changes affect key metrics
+- **Configuration Management**: Import and export configurations
+- **Visual Analysis**: Interactive charts for customers, revenue, expenses and unit economics
+- **Detailed Tables**: Comprehensive tables with key metrics and summaries
+- **Modern UI**: Clean, responsive interface with tabbed organization
+
+### Streamlit Dashboard (Legacy)
+
+The model also includes a Streamlit dashboard (note: streamlit_app.py has been removed in recent updates):
+
+```bash
+streamlit run streamlit_app.py  # Note: This file may need to be recreated
+```
+
+### Streamlit Dashboard Features
 
 - **Interactive S-Curve Editor**: Drag and modify growth curve parameters and see real-time changes
 - **Financial Metrics**: Instantly view how parameter changes affect key metrics
