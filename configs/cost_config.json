@@ -4,149 +4,153 @@
 
   "cogs": {
     "cloud_hosting": 0.1,
-    "customer_support": 0.0,
-    "third_party_apis": 0.0,
-    "professional_services": 0.0
+    "customer_support": 0.05,
+    "third_party_apis": 0.02,
+    "professional_services": 0.03
   },
 
   "headcount": {
     "engineering": {
-      "starting_count": 5,
+      "starting_count": 6,
       "growth_type": "step",
       "growth_factors": {
         "1": 1.5,
-        "2": 1.6,
-        "3": 1.4,
+        "2": 1.8,
+        "3": 1.5,
         "4": 1.3,
         "5": 1.2,
-        "6": 1.2
+        "6": 1.1
       },
-      "avg_salary": 120000
+      "avg_salary": 150000
     },
     "product": {
-      "starting_count": 1,
+      "starting_count": 2,
       "growth_type": "step",
       "growth_factors": {
         "1": 1.5,
-        "2": 1.2,
-        "3": 1.1,
-        "4": 1.1,
-        "5": 1.0,
+        "2": 1.5,
+        "3": 1.3,
+        "4": 1.2,
+        "5": 1.1,
         "6": 1.0
       },
-      "avg_salary": 130000
+      "avg_salary": 160000
     },
     "sales": {
-      "starting_count": 3,
+      "starting_count": 2,
       "growth_type": "step",
       "growth_factors": {
-        "1": 1.8,
-        "2": 1.6,
-        "3": 1.5,
-        "4": 1.4,
+        "1": 1.5,
+        "2": 2.0,
+        "3": 1.7,
+        "4": 1.5,
         "5": 1.3,
         "6": 1.2
       },
-      "avg_salary": 130000
+      "avg_salary": 180000
     },
     "marketing": {
       "starting_count": 1,
       "growth_type": "step",
       "growth_factors": {
-        "1": 1.3,
-        "2": 1.4,
-        "3": 1.3,
-        "4": 1.2,
+        "1": 1.0,
+        "2": 2.0,
+        "3": 1.5,
+        "4": 1.3,
         "5": 1.2,
         "6": 1.0
       },
-      "avg_salary": 90000
+      "avg_salary": 140000
     },
     "customer_success": {
       "starting_count": 1,
       "growth_type": "step",
       "growth_factors": {
-        "1": 1.5,
-        "2": 1.7,
-        "3": 1.6,
-        "4": 1.4,
+        "1": 1.0,
+        "2": 2.0,
+        "3": 1.8,
+        "4": 1.5,
         "5": 1.3,
         "6": 1.2
       },
-      "avg_salary": 80000
+      "avg_salary": 130000
     },
     "g_and_a": {
       "starting_count": 1,
       "growth_type": "step",
       "growth_factors": {
-        "1": 1.4,
-        "2": 1.2,
-        "3": 1.1,
-        "4": 1.1,
-        "5": 1,
-        "6": 1
+        "1": 1.0,
+        "2": 1.5,
+        "3": 1.3,
+        "4": 1.2,
+        "5": 1.1,
+        "6": 1.0
       },
-      "avg_salary": 60000
+      "avg_salary": 120000
     },
-    "research": {
-      "starting_count": 1,
+    "compliance_experts": {
+      "starting_count": 2,
       "growth_type": "step",
       "growth_factors": {
         "1": 1.5,
-        "2": 1.2,
-        "3": 1.2,
-        "4": 1,
-        "5": 1,
-        "6": 1
+        "2": 2.0,
+        "3": 1.5,
+        "4": 1.3,
+        "5": 1.2,
+        "6": 1.1
       },
-      "avg_salary": 150000
+      "avg_salary": 170000
     }
   },
 
   "salary": {
     "annual_increase": 0.05,
-    "benefits_multiplier": 0,
-    "payroll_tax_rate": 0.18,
-    "bonus_rate": 0,
-    "equity_compensation": 0
+    "benefits_multiplier": 1.18,
+    "payroll_tax_rate": 0.20,
+    "bonus_rate": 0.15,
+    "equity_compensation": 0.10
   },
 
   "marketing_expenses": {
-    "paid_advertising": 0.15,
-    "content_creation": 0.1,
-    "events_and_pr": 0.08,
-    "partner_marketing": 0.07
+    "paid_advertising": 0.08,
+    "content_creation": 0.03,
+    "events_and_pr": 0.10,
+    "partner_marketing": 0.06
   },
 
   "marketing_efficiency": {
     "1": 1.0,
-    "2": 0.92,
-    "3": 0.85,
-    "4": 0.8,
-    "5": 0.75,
-    "6": 0.7
+    "2": 0.85,
+    "3": 0.75,
+    "4": 0.70,
+    "5": 0.65,
+    "6": 0.60
   },
 
   "sales_expenses": {
-    "commission_rate": 0.15,
-    "tools_and_enablement": 0.05
+    "commission_rate": 0.18,
+    "tools_and_enablement": 0.06
   },
 
   "r_and_d_expenses": {
-    "cloud_compute_for_training": 0,
-    "research_tools_and_data": 0.05,
-    "third_party_research": 0.08
+    "cloud_compute_for_training": 0.05,
+    "research_tools_and_data": 0.08,
+    "third_party_research": 0.06
   },
 
   "g_and_a_expenses": {
-    "office_and_facilities": 5000,
-    "per_employee_office_cost": 0,
-    "software_and_tools": 2000,
-    "legal_and_accounting": 1000,
-    "insurance": 15000
+    "office_and_facilities": 15000,
+    "per_employee_office_cost": 1200,
+    "software_and_tools": 3000,
+    "legal_and_accounting": 4000,
+    "insurance": 25000
   },
 
   "one_time_expenses": {
-    "items": [[3, "IP and Legal Cost", 750000, "Microsoft"]]
+    "items": [
+      [3, "AI Regulation Compliance Framework Development", 500000, "Expert consultation"],
+      [13, "ISO 27001 & AI Certification", 250000, "Certification costs"],
+      [25, "Major Platform Upgrade", 750000, "Technology transition"]
+    ]
   }
 }

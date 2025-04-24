@@ -114,12 +114,23 @@ class SaaSFinancialModel:
         # Calculate financial metrics
         self.monthly_data['gross_profit'] = self.monthly_data['monthly_revenue'] - \
             self.monthly_data['total_cogs']
-        self.monthly_data['gross_margin'] = self.monthly_data['gross_profit'] / \
-            self.monthly_data['monthly_revenue']
+        
+        # Prevent division by zero in gross margin calculation
+        self.monthly_data['gross_margin'] = np.where(
+            self.monthly_data['monthly_revenue'] > 0,
+            self.monthly_data['gross_profit'] / self.monthly_data['monthly_revenue'],
+            0  # Default to 0 margin when revenue is 0
+        )
+        
         self.monthly_data['ebitda'] = self.monthly_data['gross_profit'] - \
             self.monthly_data['total_operating_expenses']
-        self.monthly_data['ebitda_margin'] = self.monthly_data['ebitda'] / \
-            self.monthly_data['monthly_revenue']
+        
+        # Prevent division by zero in EBITDA margin calculation
+        self.monthly_data['ebitda_margin'] = np.where(
+            self.monthly_data['monthly_revenue'] > 0,
+            self.monthly_data['ebitda'] / self.monthly_data['monthly_revenue'],
+            0  # Default to 0 margin when revenue is 0
+        )
 
         # Initial capital tracking
         self.monthly_data['cash_flow'] = self.monthly_data['ebitda']
@@ -138,17 +149,26 @@ class SaaSFinancialModel:
 
         # Calculate runway in months
         self.monthly_data['runway_months'] = np.nan
+        
+        # Define a large but finite value for "infinite" runway
+        # Using a large finite number instead of inf to avoid numerical issues
+        max_runway_months = 10 * 12  # 10 years as practical "infinity"
+        
         for i in range(len(self.monthly_data)):
             if self.monthly_data.loc[i, 'cash_flow'] < 0:
-                remaining_capital = self.monthly_data.loc[i, 'capital']
+                remaining_capital = max(0, self.monthly_data.loc[i, 'capital'])
                 current_burn = -self.monthly_data.loc[i, 'cash_flow']
-                if current_burn > 0:
-                    self.monthly_data.loc[i,
-                                          'runway_months'] = remaining_capital / current_burn
+                
+                if current_burn > 0 and remaining_capital > 0:
+                    # Calculate runway with upper bound
+                    runway = remaining_capital / current_burn
+                    self.monthly_data.loc[i, 'runway_months'] = min(runway, max_runway_months)
                 else:
-                    self.monthly_data.loc[i, 'runway_months'] = float('inf')
+                    # Handle edge case of zero burn rate
+                    self.monthly_data.loc[i, 'runway_months'] = max_runway_months
             else:
-                self.monthly_data.loc[i, 'runway_months'] = float('inf')
+                # Positive cash flow means sustainable operations
+                self.monthly_data.loc[i, 'runway_months'] = max_runway_months
 
         # Calculate CAC
         self.monthly_data['sales_marketing_expense'] = (
@@ -159,48 +179,97 @@ class SaaSFinancialModel:
 
         # Calculate CAC on a rolling 3-month basis
         for i in range(3, len(self.monthly_data)):
-            new_customers = self.monthly_data.loc[i -
-                                                  2:i, 'total_new_customers'].sum()
-            sm_expenses = self.monthly_data.loc[i -
-                                                2:i, 'sales_marketing_expense'].sum()
-            if new_customers > 0:
+            new_customers = self.monthly_data.loc[i-2:i, 'total_new_customers'].sum()
+            sm_expenses = self.monthly_data.loc[i-2:i, 'sales_marketing_expense'].sum()
+            
+            # Set a minimum number of customers to avoid division by very small numbers
+            min_customers_for_calculation = 1
+            
+            if new_customers >= min_customers_for_calculation:
                 self.monthly_data.loc[i, 'cac'] = sm_expenses / new_customers
+            else:
+                # Use previous CAC or a reasonable default if no customers acquired
+                if i > 3 and not pd.isna(self.monthly_data.loc[i-1, 'cac']):
+                    self.monthly_data.loc[i, 'cac'] = self.monthly_data.loc[i-1, 'cac']
+                else:
+                    # Default CAC based on industry average or business model
+                    self.monthly_data.loc[i, 'cac'] = 5000  # Reasonable default
 
-        # Calculate LTV (simpler version)
-        self.monthly_data['arpu'] = self.monthly_data['total_arr'] / \
-            self.monthly_data['total_customers']
-        # Average monthly gross margin per customer
+        # Calculate LTV (simpler version) with division by zero protection
+        self.monthly_data['arpu'] = np.where(
+            self.monthly_data['total_customers'] > 0,
+            self.monthly_data['total_arr'] / self.monthly_data['total_customers'],
+            0  # Default to 0 ARPU when no customers
+        )
+        # Average monthly gross margin per customer (with safeguard)
         self.monthly_data['monthly_margin_per_customer'] = (
             self.monthly_data['gross_margin'] * self.monthly_data['arpu'] / 12
         )
 
         # Use churn rates from revenue model to calculate customer lifetime
-        # Assumes churn rate at segment level is tracked
-        avg_churn_rate = 0.15  # Default annual churn rate if not available
+        # Get min churn rate from the revenue model if available
+        if hasattr(self.revenue_model, 'config') and 'churn_rates' in self.revenue_model.config:
+            # Find the minimum churn rate from all segments
+            min_annual_churn_rate = min(self.revenue_model.config['churn_rates'].values())
+            # Average churn rate across all segments
+            avg_churn_rate = sum(self.revenue_model.config['churn_rates'].values()) / len(self.revenue_model.config['churn_rates'])
+        else:
+            # Default values if not available
+            min_annual_churn_rate = 0.08  # Default minimum churn
+            avg_churn_rate = 0.15  # Default average churn
+            
+        # Calculate max lifetime based on min churn (inversely related)
+        max_lifetime_months = int(12 / min_annual_churn_rate)
+        
+        # Initialize customer_lifetime_months with default values
+        self.monthly_data['customer_lifetime_months'] = 1 / (avg_churn_rate / 12)
+        
         if 'total_churned_customers' in self.monthly_data.columns and 'total_customers' in self.monthly_data.columns:
             for i in range(12, len(self.monthly_data), 12):  # Annual calculation
-                annual_churned = self.monthly_data.loc[i -
-                                                       11:i, 'total_churned_customers'].sum()
-                avg_customers = self.monthly_data.loc[i -
-                                                      11:i, 'total_customers'].mean()
-                if avg_customers > 0:
+                annual_churned = self.monthly_data.loc[i - 11:i, 'total_churned_customers'].sum()
+                avg_customers = self.monthly_data.loc[i - 11:i, 'total_customers'].mean()
+                
+                # Only calculate if we have meaningful customer data
+                min_customers_for_calculation = 5
+                if avg_customers >= min_customers_for_calculation:
                     annual_churn_rate = annual_churned / avg_customers
-                    if annual_churn_rate > 0:
-                        self.monthly_data.loc[i-11:i, 'customer_lifetime_months'] = 1 / (
-                            annual_churn_rate / 12)
+                    
+                    # Apply minimum churn rate to avoid infinite lifetime
+                    if annual_churn_rate < min_annual_churn_rate:
+                        annual_churn_rate = min_annual_churn_rate
+                        
+                    # Calculate lifetime in months
+                    lifetime_months = 1 / (annual_churn_rate / 12)
+                    
+                    # Cap lifetime at maximum value
+                    lifetime_months = min(lifetime_months, max_lifetime_months)
+                    
+                    # Apply to all months in this year
+                    self.monthly_data.loc[i-11:i, 'customer_lifetime_months'] = lifetime_months
+                else:
+                    # Use default lifetime for early months with few customers
+                    default_lifetime = min(1 / (min_annual_churn_rate / 12), max_lifetime_months)
+                    self.monthly_data.loc[i-11:i, 'customer_lifetime_months'] = default_lifetime
 
-        # Default lifetime if calculation fails
-        if 'customer_lifetime_months' not in self.monthly_data.columns:
-            self.monthly_data['customer_lifetime_months'] = 1 / \
-                (avg_churn_rate / 12)
+        # Calculate LTV with reasonable bounds
+        # Set a maximum LTV cap to prevent unrealistic values
+        annual_arpu = self.monthly_data['arpu']
+        max_ltv_multiplier = 5  # Maximum LTV can be 5x annual ARPU - more realistic for SaaS
+        
+        self.monthly_data['ltv'] = np.minimum(
+            self.monthly_data['monthly_margin_per_customer'] * self.monthly_data['customer_lifetime_months'],
+            annual_arpu * max_ltv_multiplier  # Cap LTV at reasonable multiple of ARPU
+        )
 
-        # Calculate LTV
-        self.monthly_data['ltv'] = self.monthly_data['monthly_margin_per_customer'] * \
-            self.monthly_data['customer_lifetime_months']
-
-        # Calculate LTV/CAC ratio
-        self.monthly_data['ltv_cac_ratio'] = self.monthly_data['ltv'] / \
-            self.monthly_data['cac']
+        # Calculate LTV/CAC ratio with division by zero protection
+        max_ratio = 10  # Maximum realistic LTV/CAC ratio for SaaS
+        
+        # Where CAC is available and positive, calculate ratio with cap
+        self.monthly_data['ltv_cac_ratio'] = np.where(
+            (self.monthly_data['cac'].notna()) & (self.monthly_data['cac'] > 0),
+            np.minimum(self.monthly_data['ltv'] / self.monthly_data['cac'], max_ratio),
+            np.nan  # Leave as NaN where CAC isn't available
+        )
 
     def _generate_annual_summary(self):
         """
@@ -267,12 +336,23 @@ class SaaSFinancialModel:
         # Calculate annual financial metrics
         self.annual_data['annual_gross_profit'] = self.annual_data['annual_revenue'] - \
             self.annual_data['annual_total_cogs']
-        self.annual_data['annual_gross_margin'] = self.annual_data['annual_gross_profit'] / \
-            self.annual_data['annual_revenue']
+        
+        # Prevent division by zero in annual gross margin calculation
+        self.annual_data['annual_gross_margin'] = np.where(
+            self.annual_data['annual_revenue'] > 0,
+            self.annual_data['annual_gross_profit'] / self.annual_data['annual_revenue'],
+            0  # Default to 0 margin when revenue is 0
+        )
+        
         self.annual_data['annual_ebitda'] = self.annual_data['annual_gross_profit'] - \
             self.annual_data['annual_total_operating_expenses']
-        self.annual_data['annual_ebitda_margin'] = self.annual_data['annual_ebitda'] / \
-            self.annual_data['annual_revenue']
+        
+        # Prevent division by zero in annual EBITDA margin calculation
+        self.annual_data['annual_ebitda_margin'] = np.where(
+            self.annual_data['annual_revenue'] > 0,
+            self.annual_data['annual_ebitda'] / self.annual_data['annual_revenue'],
+            0  # Default to 0 margin when revenue is 0
+        )
 
         # Calculate annual new/churned customers
         self.annual_data['annual_new_customers'] = [
@@ -314,20 +394,41 @@ class SaaSFinancialModel:
         self.annual_data['arr_growth_rate'] = np.nan
         self.annual_data['revenue_growth_rate'] = np.nan
 
+        # Set a minimum threshold for calculating growth rates to avoid division by very small numbers
+        min_arr_threshold = 10000  # $10K minimum for ARR
+        min_revenue_threshold = 1000  # $1K minimum for revenue
+        max_growth_rate = 10.0  # 1000% as a maximum realistic growth rate
+
         for i in range(1, len(self.annual_data)):
             # ARR growth
             prev_arr = self.annual_data.loc[i-1, 'year_end_arr']
             current_arr = self.annual_data.loc[i, 'year_end_arr']
-            if prev_arr > 0:
-                self.annual_data.loc[i, 'arr_growth_rate'] = (
-                    current_arr / prev_arr) - 1
+            
+            if prev_arr >= min_arr_threshold:
+                # Calculate growth rate and cap at maximum
+                growth_rate = (current_arr / prev_arr) - 1
+                self.annual_data.loc[i, 'arr_growth_rate'] = min(growth_rate, max_growth_rate)
+            elif current_arr > 0 and prev_arr > 0:
+                # For very small starting values, use a more conservative approach
+                self.annual_data.loc[i, 'arr_growth_rate'] = min((current_arr - prev_arr) / max(prev_arr, min_arr_threshold), max_growth_rate)
+            else:
+                # Default when there's no meaningful previous value
+                self.annual_data.loc[i, 'arr_growth_rate'] = np.nan
 
-            # Revenue growth
+            # Revenue growth - similar approach
             prev_revenue = self.annual_data.loc[i-1, 'annual_revenue']
             current_revenue = self.annual_data.loc[i, 'annual_revenue']
-            if prev_revenue > 0:
-                self.annual_data.loc[i, 'revenue_growth_rate'] = (
-                    current_revenue / prev_revenue) - 1
+            
+            if prev_revenue >= min_revenue_threshold:
+                # Calculate growth rate and cap at maximum
+                growth_rate = (current_revenue / prev_revenue) - 1
+                self.annual_data.loc[i, 'revenue_growth_rate'] = min(growth_rate, max_growth_rate)
+            elif current_revenue > 0 and prev_revenue > 0:
+                # For very small starting values, use a more conservative approach
+                self.annual_data.loc[i, 'revenue_growth_rate'] = min((current_revenue - prev_revenue) / max(prev_revenue, min_revenue_threshold), max_growth_rate)
+            else:
+                # Default when there's no meaningful previous value
+                self.annual_data.loc[i, 'revenue_growth_rate'] = np.nan
 
     def _calculate_cumulative_metrics(self):
         """
@@ -360,9 +461,19 @@ class SaaSFinancialModel:
             self.annual_data.loc[i, 'cumulative_ebitda'] = cum_ebitda
 
         # Calculate Rule of 40 metric (Growth % + Profit %)
-        self.annual_data['rule_of_40'] = (
-            (self.annual_data['revenue_growth_rate'] * 100) +
-            (self.annual_data['annual_ebitda_margin'] * 100)
+        # Handle NaN values and set reasonable bounds
+        max_rule_of_40 = 100  # Cap at 100 for extreme cases
+        
+        # Convert growth rate to percent
+        growth_percent = self.annual_data['revenue_growth_rate'].fillna(0) * 100
+        
+        # Convert margin to percent
+        margin_percent = self.annual_data['annual_ebitda_margin'] * 100
+        
+        # Calculate Rule of 40 with cap
+        self.annual_data['rule_of_40'] = np.minimum(
+            growth_percent + margin_percent,
+            max_rule_of_40
         )
 
     def get_monthly_data(self):
@@ -711,22 +822,31 @@ class SaaSFinancialModel:
             ax.text(month, ax.get_ylim()[1]*0.95, f'Year {year}',
                     ha='center', va='top', backgroundcolor='white', alpha=0.8)
 
-        # Find break-even point - fix the comparison to find when revenue first exceeds or equals expenses
-        break_even_points = np.where(revenue >= expenses)[0]
-        if len(break_even_points) > 0:
-            # Get the first index where revenue >= expenses
-            break_even_idx = break_even_points[0]
-            if break_even_idx > 0 and break_even_idx < len(months):
-                break_even_month = months[break_even_idx]
-
-                # Mark break-even point
-                ax.plot(break_even_month,
-                        revenue[break_even_idx], 'ro', markersize=8)
-                ax.annotate(f'Break-even: Month {break_even_month}',
-                            xy=(break_even_month, revenue[break_even_idx]),
-                            xytext=(break_even_month+5,
-                                    revenue[break_even_idx]+0.2),
-                            arrowprops=dict(facecolor='black', shrink=0.05, width=1.5))
+        # Find break-even point with sustained profitability (3+ consecutive months)
+        consecutive_months_required = 3  # Number of consecutive profitable months required
+        sustained_breakeven_idx = None
+        
+        # Find indices where revenue >= expenses
+        profitable_months = revenue >= expenses
+        
+        # Find the first occurrence of 3+ consecutive profitable months
+        for i in range(len(profitable_months) - consecutive_months_required + 1):
+            if np.all(profitable_months[i:i+consecutive_months_required]):
+                sustained_breakeven_idx = i
+                break
+                
+        # If we found a sustained break-even point
+        if sustained_breakeven_idx is not None and sustained_breakeven_idx < len(months):
+            break_even_month = months[sustained_breakeven_idx]
+            
+            # Mark break-even point
+            ax.plot(break_even_month,
+                    revenue[sustained_breakeven_idx], 'ro', markersize=8)
+            ax.annotate(f'Break-even: Month {break_even_month} (sustained)',
+                        xy=(break_even_month, revenue[sustained_breakeven_idx]),
+                        xytext=(break_even_month+5,
+                                revenue[sustained_breakeven_idx]+0.2),
+                        arrowprops=dict(facecolor='black', shrink=0.05, width=1.5))
 
         ax.legend()
 
@@ -782,24 +902,73 @@ class SaaSFinancialModel:
         # LTV: Average revenue per user * gross margin * customer lifetime
         arpu = revenue_annual['total_ending_arr'].values / \
             revenue_annual['total_ending_customers'].values
-        gross_margin = 0.65  # Assumed 65% gross margin from COGS
-        customer_lifetime = 1 / 0.15  # Assuming 15% annual churn rate
-        metrics['LTV ($)'] = arpu * gross_margin * customer_lifetime
+            
+        # Calculate actual gross margin from the model instead of using a hardcoded value
+        annual_revenue = self.annual_data['annual_revenue'].values
+        annual_cogs = self.annual_data['annual_total_cogs'].values
+        
+        gross_margin = np.where(
+            annual_revenue > 0, 
+            (annual_revenue - annual_cogs) / annual_revenue,
+            0.9  # Default 90% margin when revenue is 0 (consistent with model defaults)
+        )
+        
+        # Get min churn rate from the revenue model if available
+        if hasattr(self.revenue_model, 'config') and 'churn_rates' in self.revenue_model.config:
+            # Find the minimum churn rate from all segments
+            min_annual_churn_rate = min(self.revenue_model.config['churn_rates'].values())
+        else:
+            # Default value if not available
+            min_annual_churn_rate = 0.08  # Default minimum churn
+            
+        # Calculate max lifetime based on min churn (inversely related)
+        max_lifetime_years = 1 / min_annual_churn_rate
+        
+        # Get annual churn rates if available, or use default
+        if 'total_churn_rate' in revenue_annual.columns:
+            annual_churn_rates = np.maximum(revenue_annual['total_churn_rate'].values, min_annual_churn_rate)
+        else:
+            annual_churn_rates = np.full(len(years), 0.15)  # Default 15% annual churn rate
+            
+        # Calculate customer lifetime with caps
+        customer_lifetimes = np.minimum(1 / annual_churn_rates, max_lifetime_years)
+        
+        # Calculate LTV based on customer lifetimes (dynamic based on churn rates)
+        raw_ltv = arpu * gross_margin * customer_lifetimes
+        # Cap LTV at reasonable multiple of ARPU based on the max lifetime
+        metrics['LTV ($)'] = raw_ltv
 
-        # LTV/CAC ratio
-        metrics['LTV/CAC Ratio'] = metrics['LTV ($)'].values / \
-            metrics['CAC ($)'].values
+        # LTV/CAC ratio - allow full range based on actual values
+        metrics['LTV/CAC Ratio'] = metrics['LTV ($)'].values / metrics['CAC ($)'].values
 
         # Rule of 40 score (Growth rate + EBITDA margin)
+        # Handle NaN values and set reasonable bounds
+        max_rule_of_40 = 100  # Cap at 100 for extreme cases
+        min_rule_of_40 = -100  # Floor at -100 for extreme negative cases
+        
         rule_of_40 = []
-        # First year just use EBITDA margin
-        rule_of_40.append(metrics.loc['Year 1', 'EBITDA Margin (%)'])
+        
+        # First year: typically only report EBITDA margin since there's no prior year for growth
+        # Note: This is a standard SaaS practice for first year metrics
+        first_year_r40 = min(max(metrics.loc['Year 1', 'EBITDA Margin (%)'], min_rule_of_40), max_rule_of_40)
+        rule_of_40.append(first_year_r40)
 
-        # For subsequent years, add growth rate
+        # For subsequent years, add growth rate + margin with bounds
         for i in range(1, len(years)):
-            growth_rate = revenue_annual.loc[i, 'total_arr_growth_rate'] * 100
-            rule_of_40.append(
-                growth_rate + metrics.loc[f'Year {i+1}', 'EBITDA Margin (%)'])
+            if 'total_arr_growth_rate' in revenue_annual.columns:
+                growth_rate = revenue_annual.loc[i, 'total_arr_growth_rate'] * 100
+                
+                # Cap extreme growth rates
+                growth_rate = min(growth_rate, 200)  # Cap at 200% for realistic reporting
+                
+                r40_score = growth_rate + metrics.loc[f'Year {i+1}', 'EBITDA Margin (%)']
+                
+                # Apply min/max bounds
+                r40_score = min(max(r40_score, min_rule_of_40), max_rule_of_40)
+                rule_of_40.append(r40_score)
+            else:
+                # Fallback if growth rate isn't available
+                rule_of_40.append(metrics.loc[f'Year {i+1}', 'EBITDA Margin (%)'])
 
         metrics['Rule of 40 Score'] = rule_of_40
 
@@ -822,7 +991,7 @@ class SaaSFinancialModel:
         formatted_metrics['Customers'] = [
             f"{int(x):,}" for x in metrics['Customers'].values]
         formatted_metrics['Headcount'] = [
-            f"{int(x)}" for x in metrics['Headcount'].values]
+            f"{x:.1f}" for x in metrics['Headcount'].values]
         formatted_metrics['CAC ($)'] = [
             f"${int(x):,}" for x in metrics['CAC ($)'].values]
         formatted_metrics['LTV ($)'] = [

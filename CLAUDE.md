@@ -7,6 +7,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run interactive dashboard: `streamlit run streamlit_app.py`
 - Install requirements: `pip install -r requirements.txt`
 
+## Running the Streamlit Dashboard
+The Streamlit dashboard allows you to interactively modify S-curves and other parameters:
+
+1. Install requirements: `pip install -r requirements.txt`
+2. Run the dashboard: `streamlit run streamlit_app.py`
+3. Open your browser to the URL shown in the terminal (usually http://localhost:8501)
+4. Use the sidebar to modify parameters and see real-time updates
+
 ## Code Style Guidelines
 - Indentation: 4 spaces
 - Line length: 100 characters max

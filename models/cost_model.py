@@ -23,183 +23,12 @@ class AISaaSCostModel:
             Configuration parameters for the cost model
         """
         # Set default configuration if none provided
-        if config is None:
-            self.config = self._get_default_config()
-        else:
-            self.config = config
+        self.config = config
             
         # Initialize results dataframes
         self.monthly_data = None
         self.annual_data = None
         self._model_run = False
-        
-    def _get_default_config(self):
-        """
-        Returns a default configuration with typical AI SaaS cost structures
-        """
-        return {
-            # Basic parameters
-            'start_date': '2025-01-01',
-            'projection_months': 72,  # 6 years
-            
-            # COGS Assumptions (% of ARR)
-            'cogs': {
-                'cloud_hosting': 0.12,  # 12% of ARR for cloud infrastructure
-                'customer_support': 0.08,  # 8% of ARR for support
-                'third_party_apis': 0.05,  # 5% of ARR for third-party AI/ML APIs
-                'professional_services': 0.03,  # 3% of ARR for PS delivery
-            },
-            
-            # Headcount Assumptions (starting headcount, with growth factors)
-            'headcount': {
-                # Engineering including ML/AI specialists
-                'engineering': {
-                    'starting_count': 10,
-                    'growth_type': 'step',  # 'linear', 'step', or 's_curve'
-                    'growth_factors': {
-                        1: 1.0,  # Year 1: No change
-                        2: 1.5,  # Year 2: 50% growth
-                        3: 1.3,  # Year 3: 30% growth
-                        4: 1.2,  # Year 4: 20% growth
-                        5: 1.2,  # Year 5: 20% growth
-                        6: 1.1,  # Year 6: 10% growth
-                    },
-                    'avg_salary': 150000,  # Average annual salary
-                },
-                # Product Management
-                'product': {
-                    'starting_count': 3,
-                    'growth_type': 'step',
-                    'growth_factors': {
-                        1: 1.0,
-                        2: 1.3,
-                        3: 1.3,
-                        4: 1.2,
-                        5: 1.2,
-                        6: 1.1,
-                    },
-                    'avg_salary': 140000,
-                },
-                # Sales team
-                'sales': {
-                    'starting_count': 5,
-                    'growth_type': 'step',
-                    'growth_factors': {
-                        1: 1.4,  # Sales grows faster early
-                        2: 1.5,
-                        3: 1.3,
-                        4: 1.2,
-                        5: 1.2,
-                        6: 1.1,
-                    },
-                    'avg_salary': 120000,  # Base salary (not including commissions)
-                },
-                # Marketing team
-                'marketing': {
-                    'starting_count': 3,
-                    'growth_type': 'step',
-                    'growth_factors': {
-                        1: 1.3,
-                        2: 1.4,
-                        3: 1.2,
-                        4: 1.2,
-                        5: 1.1,
-                        6: 1.1,
-                    },
-                    'avg_salary': 110000,
-                },
-                # Customer success/support
-                'customer_success': {
-                    'starting_count': 4,
-                    'growth_type': 'step',
-                    'growth_factors': {
-                        1: 1.2,
-                        2: 1.3,
-                        3: 1.3,
-                        4: 1.2,
-                        5: 1.2,
-                        6: 1.1,
-                    },
-                    'avg_salary': 85000,
-                },
-                # G&A (General and Administrative)
-                'g_and_a': {
-                    'starting_count': 3,
-                    'growth_type': 'step',
-                    'growth_factors': {
-                        1: 1.0,
-                        2: 1.3,
-                        3: 1.2,
-                        4: 1.2,
-                        5: 1.1,
-                        6: 1.1,
-                    },
-                    'avg_salary': 100000,
-                },
-            },
-            
-            # Salary & Benefits Assumptions
-            'salary': {
-                'annual_increase': 0.03,  # 3% annual salary increase
-                'benefits_multiplier': 1.25,  # Benefits are 25% of base salary
-                'payroll_tax_rate': 0.08,  # 8% payroll taxes
-                'bonus_rate': 0.10,  # 10% annual bonus
-                'equity_compensation': 0.15,  # 15% of salary as equity comp
-            },
-            
-            # Marketing & Other Expenses
-            'marketing_expenses': {
-                # Non-headcount marketing expenses (% of ARR)
-                'paid_advertising': 0.15,  # 15% of ARR
-                'content_creation': 0.05,  # 5% of ARR
-                'events_and_pr': 0.03,  # 3% of ARR
-                'partner_marketing': 0.02,  # 2% of ARR
-            },
-            
-            # Growth multiplier for marketing as company scales (efficiency/economies of scale)
-            'marketing_efficiency': {
-                1: 1.0,  # Year 1: Base level
-                2: 0.95,  # Year 2: 5% more efficient
-                3: 0.90,  # Year 3: 10% more efficient
-                4: 0.85,  # Year 4: 15% more efficient
-                5: 0.80,  # Year 5: 20% more efficient
-                6: 0.75,  # Year 6: 25% more efficient
-            },
-            
-            # Sales expenses
-            'sales_expenses': {
-                'commission_rate': 0.10,  # 10% commission on new ARR
-                'tools_and_enablement': 0.02,  # 2% of ARR
-            },
-            
-            # R&D expenses (beyond headcount)
-            'r_and_d_expenses': {
-                'cloud_compute_for_training': 0.08,  # 8% of ARR
-                'research_tools_and_data': 0.05,  # 5% of ARR
-                'third_party_research': 0.02,  # 2% of ARR
-            },
-            
-            # General & Admin expenses
-            'g_and_a_expenses': {
-                'office_and_facilities': 10000,  # Per month base cost
-                'per_employee_office_cost': 500,  # Per employee per month
-                'software_and_tools': 300,  # Per employee per month
-                'legal_and_accounting': 20000,  # Per month base cost
-                'insurance': 5000,  # Per month base cost
-            },
-            
-            # One-time and periodic expenses
-            'one_time_expenses': {
-                # Format: [month_idx, category, amount, description]
-                'items': [
-                    [3, 'office', 100000, 'Office setup and expansion'],
-                    [15, 'software', 50000, 'Enterprise software licenses'],
-                    [27, 'legal', 75000, 'IP protection and legal work'],
-                    [36, 'office', 150000, 'New office location setup'],
-                    [48, 'infrastructure', 200000, 'Major infrastructure upgrade'],
-                ]
-            }
-        }
         
     def set_config(self, config):
         """
@@ -337,12 +166,12 @@ class AISaaSCostModel:
         # Add total ARR column (will be populated by revenue model if provided)
         self.monthly_data['total_arr'] = 0.0
         
-        # Add department headcount columns
+        # Add department headcount columns (using float for fractional headcount)
         for department in self.config['headcount']:
-            self.monthly_data[f'{department}_headcount'] = 0
+            self.monthly_data[f'{department}_headcount'] = 0.0
         
-        # Add total headcount column
-        self.monthly_data['total_headcount'] = 0
+        # Add total headcount column (using float for fractional headcount)
+        self.monthly_data['total_headcount'] = 0.0
         
         # Add salary & benefits columns
         for department in self.config['headcount']:
@@ -407,8 +236,8 @@ class AISaaSCostModel:
             starting_count = config['starting_count']
             growth_type = config.get('growth_type', 'step')
             
-            # Set initial headcount
-            self.monthly_data.loc[0, f'{dept}_headcount'] = starting_count
+            # Set initial headcount (float for fractional headcount)
+            self.monthly_data.loc[0, f'{dept}_headcount'] = float(starting_count)
             
             if growth_type == 'step':
                 # Step function growth (changes at year boundaries)
@@ -418,9 +247,11 @@ class AISaaSCostModel:
                     
                     if year_number != prev_year_number:
                         # Year boundary - apply growth factor
-                        growth_factor = config['growth_factors'].get(year_number, 1.0)
+                        # Convert string keys to integer if needed
+                        growth_factor = config['growth_factors'].get(str(year_number), 
+                                                                    config['growth_factors'].get(year_number, 1.0))
                         prev_headcount = self.monthly_data.loc[month_idx - 1, f'{dept}_headcount']
-                        new_headcount = round(prev_headcount * growth_factor)
+                        new_headcount = prev_headcount * growth_factor
                         self.monthly_data.loc[month_idx, f'{dept}_headcount'] = new_headcount
                     else:
                         # Same year - maintain headcount
@@ -429,7 +260,9 @@ class AISaaSCostModel:
             elif growth_type == 'linear':
                 # Linear growth throughout the year
                 for year_number in range(1, 7):
-                    growth_factor = config['growth_factors'].get(year_number, 1.0)
+                    # Convert string keys to integer if needed
+                    growth_factor = config['growth_factors'].get(str(year_number), 
+                                                               config['growth_factors'].get(year_number, 1.0))
                     
                     # Calculate monthly growth rate
                     if growth_factor == 1.0:
@@ -442,19 +275,21 @@ class AISaaSCostModel:
                             continue
                             
                         start_headcount = self.monthly_data.loc[year_start_idx, f'{dept}_headcount']
-                        target_headcount = round(start_headcount * growth_factor)
+                        target_headcount = start_headcount * growth_factor
                         monthly_growth = (target_headcount - start_headcount) / 12
                         
                         # Apply linear growth through the year
                         for month_idx in range(year_start_idx + 1, min(year_end_idx + 1, len(self.monthly_data))):
                             month_in_year = month_idx - year_start_idx
-                            incremental_growth = round(monthly_growth * month_in_year)
+                            incremental_growth = monthly_growth * month_in_year
                             self.monthly_data.loc[month_idx, f'{dept}_headcount'] = start_headcount + incremental_growth
             
             elif growth_type == 's_curve':
                 # S-curve growth (faster in the middle of the year)
                 for year_number in range(1, 7):
-                    growth_factor = config['growth_factors'].get(year_number, 1.0)
+                    # Convert string keys to integer if needed
+                    growth_factor = config['growth_factors'].get(str(year_number), 
+                                                               config['growth_factors'].get(year_number, 1.0))
                     
                     if growth_factor == 1.0:
                         continue
@@ -466,7 +301,7 @@ class AISaaSCostModel:
                         continue
                         
                     start_headcount = self.monthly_data.loc[year_start_idx, f'{dept}_headcount']
-                    target_headcount = round(start_headcount * growth_factor)
+                    target_headcount = start_headcount * growth_factor
                     total_growth = target_headcount - start_headcount
                     
                     # Apply S-curve growth
@@ -476,7 +311,7 @@ class AISaaSCostModel:
                         steepness = 0.8
                         midpoint = 6
                         s_curve_position = 1 / (1 + np.exp(-steepness * (month_in_year - midpoint)))
-                        incremental_growth = round(total_growth * s_curve_position)
+                        incremental_growth = total_growth * s_curve_position
                         self.monthly_data.loc[month_idx, f'{dept}_headcount'] = start_headcount + incremental_growth
         
         # Calculate total headcount across all departments
@@ -905,7 +740,7 @@ class AISaaSCostModel:
         # Add total headcount labels
         for i, year in enumerate(self.annual_data['year']):
             total = self.annual_data.loc[i, 'year_end_headcount']
-            ax.text(year, total * 1.02, f"{int(total)}", ha='center', fontweight='bold')
+            ax.text(year, total * 1.02, f"{total:.1f}", ha='center', fontweight='bold')
         
         return fig
     
@@ -1204,9 +1039,22 @@ class AISaaSCostModel:
         # Calculate contribution margin per customer
         unit_econ['contribution_margin'] = unit_econ['arpu'] * unit_econ['gross_margin_percent'] / 100
         
-        # Get churn rate from revenue model if available
+        # Get min churn rate from the revenue model config
+        if hasattr(revenue_model, 'config') and 'churn_rates' in revenue_model.config:
+            # Find the minimum churn rate from all segments (as percentage)
+            min_churn_rate_percent = min(revenue_model.config['churn_rates'].values()) * 100
+        else:
+            # Default value if not available
+            min_churn_rate_percent = 8.0  # Default minimum churn (8%)
+            
+        # Calculate max lifetime based on min churn (inversely related)
+        max_lifetime_years = 1 / (min_churn_rate_percent / 100)
+        
         if hasattr(revenue_model, 'annual_data') and 'total_churn_rate' in revenue_model.annual_data.columns:
-            unit_econ['churn_rate_percent'] = revenue_model.annual_data['total_churn_rate'] * 100
+            # Get churn rates from revenue model but apply minimum threshold
+            churn_rates = revenue_model.annual_data['total_churn_rate'].values * 100
+            churn_rates = np.maximum(churn_rates, min_churn_rate_percent)
+            unit_econ['churn_rate_percent'] = churn_rates[:len(unit_econ)]
         else:
             # Estimate churn rate from monthly data if possible
             try:
@@ -1217,18 +1065,32 @@ class AISaaSCostModel:
                         total_churned = year_data['total_churned_customers'].sum()
                         avg_customers = year_data['total_customers'].mean()
                         if avg_customers > 0:
-                            annual_churn_rates.append((total_churned / avg_customers) * 100)
+                            churn_rate = (total_churned / avg_customers) * 100
+                            # Apply minimum churn rate
+                            churn_rate = max(churn_rate, min_churn_rate_percent)
+                            annual_churn_rates.append(churn_rate)
                         else:
-                            annual_churn_rates.append(0)
+                            annual_churn_rates.append(min_churn_rate_percent)
                     else:
-                        annual_churn_rates.append(np.nan)
+                        annual_churn_rates.append(min_churn_rate_percent)
                 unit_econ['churn_rate_percent'] = annual_churn_rates[:len(unit_econ)]
             except:
                 # Default churn rate if calculation fails
-                unit_econ['churn_rate_percent'] = 15  # Assume 15% annual churn
+                unit_econ['churn_rate_percent'] = 15.0  # Assume 15% annual churn
         
         # Calculate LTV (Lifetime Value)
-        unit_econ['customer_lifetime_years'] = 1 / (unit_econ['churn_rate_percent'] / 100)
+        # Calculate lifetime in years with a cap
+        # For churn rates below min_churn_rate_percent, we should explicitly set them to the minimum
+        adjusted_churn_rates = np.maximum(unit_econ['churn_rate_percent'], min_churn_rate_percent)
+        unit_econ['customer_lifetime_years'] = 1 / (adjusted_churn_rates / 100)
+        
+        # Cap lifetime at maximum value
+        unit_econ['customer_lifetime_years'] = unit_econ['customer_lifetime_years'].apply(lambda x: min(x, max_lifetime_years))
+        
+        # Log the actual churn rate used for clarity in reporting
+        unit_econ['effective_annual_churn_rate'] = np.maximum(unit_econ['churn_rate_percent'], min_churn_rate_percent)
+        
+        # Calculate LTV with capped lifetime
         unit_econ['ltv'] = unit_econ['contribution_margin'] * unit_econ['customer_lifetime_years']
         
         # Calculate CAC (Customer Acquisition Cost)
@@ -1331,6 +1193,7 @@ class AISaaSCostModel:
         summary['ARPU ($)'] = unit_econ['arpu'].values
         summary['Gross Margin (%)'] = unit_econ['gross_margin_percent'].values
         summary['Churn Rate (%)'] = unit_econ['churn_rate_percent'].values
+        summary['Effective Churn Rate (%)'] = unit_econ['effective_annual_churn_rate'].values
         summary['Customer Lifetime (Years)'] = unit_econ['customer_lifetime_years'].values
         summary['LTV ($)'] = unit_econ['ltv'].values
         summary['CAC ($)'] = unit_econ['cac'].values
@@ -1342,7 +1205,8 @@ class AISaaSCostModel:
         formatted_summary['ARPU ($)'] = formatted_summary['ARPU ($)'].map('${:,.0f}'.format)
         formatted_summary['Gross Margin (%)'] = formatted_summary['Gross Margin (%)'].map('{:,.1f}%'.format)
         formatted_summary['Churn Rate (%)'] = formatted_summary['Churn Rate (%)'].map('{:,.1f}%'.format)
-        formatted_summary['Customer Lifetime (Years)'] = formatted_summary['Customer Lifetime (Years)'].map('{:,.1f}'.format)
+        formatted_summary['Effective Churn Rate (%)'] = formatted_summary['Effective Churn Rate (%)'].map('{:,.1f}%'.format)
+        formatted_summary['Customer Lifetime (Years)'] = formatted_summary['Customer Lifetime (Years)'].map('{:,.2f}'.format)
         formatted_summary['LTV ($)'] = formatted_summary['LTV ($)'].map('${:,.0f}'.format)
         formatted_summary['CAC ($)'] = formatted_summary['CAC ($)'].map('${:,.0f}'.format)
         formatted_summary['LTV/CAC Ratio'] = formatted_summary['LTV/CAC Ratio'].map('{:,.1f}x'.format)
