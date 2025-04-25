@@ -274,4 +274,4 @@ Financial model developed by Claude AI from Anthropic.
 
 
 ## Commands
-`python app.py --strategy european --breakeven-target 24 --revenue-target 36000000 --revenue-target-year 3 --initial-investment 5000000 --max-iterations 10`
+`python app.py --strategy european --breakeven-target 48 --revenue-target 30000000 --revenue-target-year 5 --initial-investment 20000000 --max-iterations 15`

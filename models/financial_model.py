@@ -897,8 +897,14 @@ class SaaSFinancialModel:
 
         # Calculate unit economics metrics
         # CAC: Total sales & marketing expense divided by new customers
+        # Add safety check to prevent division by zero
+        safe_new_customers = np.where(
+            revenue_annual['total_new_customers'].values > 0,
+            revenue_annual['total_new_customers'].values,
+            1  # Default to 1 to avoid division by zero
+        )
         metrics['CAC ($)'] = (cost_annual['total_marketing_expenses'].values +
-                              cost_annual['total_sales_expenses'].values) / revenue_annual['total_new_customers'].values
+                              cost_annual['total_sales_expenses'].values) / safe_new_customers
 
         # LTV: Average revenue per user * gross margin * customer lifetime
         arpu = revenue_annual['total_ending_arr'].values / \

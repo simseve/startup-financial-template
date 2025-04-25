@@ -50,7 +50,7 @@
         "5": 1.3,
         "6": 1.2
       },
-      "avg_salary": 180000
+      "avg_salary": 100000
     },
     "marketing": {
       "starting_count": 1,
@@ -96,11 +96,11 @@
       "growth_type": "step",
       "growth_factors": {
         "1": 1.5,
-        "2": 2.0,
-        "3": 1.5,
-        "4": 1.3,
-        "5": 1.2,
-        "6": 1.1
+        "2": 1.7,
+        "3": 1.3,
+        "4": 1.2,
+        "5": 1.1,
+        "6": 1.0
       },
       "avg_salary": 150000
     }
@@ -142,24 +142,24 @@
   "r_and_d_expenses": {
     "_comment": "All values as percentage of ARR (0.08 = 8% of ARR)",
     "cloud_compute_for_training": 0.0,
-    "research_tools_and_data": 0.08,
+    "research_tools_and_data": 0.05,
     "third_party_research": 0.06
   },
 
   "g_and_a_expenses": {
     "_comment": "USD values in monthly amounts - both fixed costs and per-employee costs",
     "office_and_facilities": 5000,
-    "per_employee_office_cost": 200,
+    "per_employee_office_cost": 100,
     "software_and_tools": 3000,
     "legal_and_accounting": 1000,
-    "insurance": 25000
+    "insurance": 500
   },
 
   "one_time_expenses": {
     "_comment": "Format: [month number, expense name, amount in USD (one-time payment), description]",
     "items": [
-      [3, "Varia", 50000, "Other expenes"],
-      [13, "Legal Lawusuit", 50000, "Lawsuit"]
+        [4, "Legal Lawusuit", 60000, "Lawsuit"],
+        [10, "Padding", 10000, "Padding"]
     ]
   }
 }
