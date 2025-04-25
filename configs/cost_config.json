@@ -24,7 +24,7 @@
         "5": 1.2,
         "6": 1.1
       },
-      "avg_salary": 130000
+      "avg_salary": 160000
     },
     "product": {
       "starting_count": 1,
@@ -37,7 +37,7 @@
         "5": 1.1,
         "6": 1.0
       },
-      "avg_salary": 140000
+      "avg_salary": 180000
     },
     "sales": {
       "starting_count": 2,
@@ -102,7 +102,7 @@
         "5": 1.1,
         "6": 1.0
       },
-      "avg_salary": 150000
+      "avg_salary": 190000
     }
   },
 
