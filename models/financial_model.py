@@ -209,10 +209,11 @@ class SaaSFinancialModel:
         # Use churn rates from revenue model to calculate customer lifetime
         # Get min churn rate from the revenue model if available
         if hasattr(self.revenue_model, 'config') and 'churn_rates' in self.revenue_model.config:
-            # Find the minimum churn rate from all segments
-            min_annual_churn_rate = min(self.revenue_model.config['churn_rates'].values())
+            # Find the minimum churn rate from all segments (excluding _comment)
+            churn_values = [v for k, v in self.revenue_model.config['churn_rates'].items() if k != "_comment"]
+            min_annual_churn_rate = min(churn_values)
             # Average churn rate across all segments
-            avg_churn_rate = sum(self.revenue_model.config['churn_rates'].values()) / len(self.revenue_model.config['churn_rates'])
+            avg_churn_rate = sum(churn_values) / len(churn_values)
         else:
             # Default values if not available
             min_annual_churn_rate = 0.08  # Default minimum churn
@@ -915,8 +916,9 @@ class SaaSFinancialModel:
         
         # Get min churn rate from the revenue model if available
         if hasattr(self.revenue_model, 'config') and 'churn_rates' in self.revenue_model.config:
-            # Find the minimum churn rate from all segments
-            min_annual_churn_rate = min(self.revenue_model.config['churn_rates'].values())
+            # Find the minimum churn rate from all segments (excluding _comment)
+            churn_values = [v for k, v in self.revenue_model.config['churn_rates'].items() if k != "_comment"]
+            min_annual_churn_rate = min(churn_values)
         else:
             # Default value if not available
             min_annual_churn_rate = 0.08  # Default minimum churn

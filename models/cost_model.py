@@ -233,6 +233,10 @@ class AISaaSCostModel:
         Calculate headcount growth for each department over time
         """
         for dept, config in self.config['headcount'].items():
+            # Skip the _comment field
+            if dept == "_comment" or not isinstance(config, dict):
+                continue
+                
             starting_count = config['starting_count']
             growth_type = config.get('growth_type', 'step')
             
@@ -315,7 +319,9 @@ class AISaaSCostModel:
                         self.monthly_data.loc[month_idx, f'{dept}_headcount'] = start_headcount + incremental_growth
         
         # Calculate total headcount across all departments
-        departments = self.config['headcount'].keys()
+        # Get departments excluding _comment
+        departments = [dept for dept in self.config['headcount'].keys() 
+                      if dept != "_comment" and isinstance(self.config['headcount'][dept], dict)]
         self.monthly_data['total_headcount'] = self.monthly_data[[f'{dept}_headcount' for dept in departments]].sum(axis=1)
     
     def _calculate_salary_expenses(self):
@@ -330,6 +336,10 @@ class AISaaSCostModel:
         equity_rate = salary_config['equity_compensation']
         
         for dept, config in self.config['headcount'].items():
+            # Skip _comment field
+            if dept == "_comment" or not isinstance(config, dict):
+                continue
+                
             base_salary = config['avg_salary']
             
             for month_idx in range(self.config['projection_months']):
@@ -360,7 +370,8 @@ class AISaaSCostModel:
                 self.monthly_data.loc[month_idx, f'{dept}_total_comp'] = monthly_total_comp
         
         # Calculate total compensation across all departments
-        departments = self.config['headcount'].keys()
+        departments = [dept for dept in self.config['headcount'].keys() 
+                      if dept != "_comment" and isinstance(self.config['headcount'][dept], dict)]
         self.monthly_data['total_base_salary'] = self.monthly_data[[f'{dept}_base_salary' for dept in departments]].sum(axis=1)
         self.monthly_data['total_benefits'] = self.monthly_data[[f'{dept}_benefits' for dept in departments]].sum(axis=1)
         self.monthly_data['total_payroll_tax'] = self.monthly_data[[f'{dept}_payroll_tax' for dept in departments]].sum(axis=1)
@@ -377,11 +388,14 @@ class AISaaSCostModel:
             
             # Calculate each COGS component
             for cogs_category, rate in self.config['cogs'].items():
+                # Skip _comment field
+                if cogs_category == "_comment":
+                    continue
                 monthly_cogs = (arr * rate) / 12  # Convert to monthly
                 self.monthly_data.loc[month_idx, f'cogs_{cogs_category}'] = monthly_cogs
             
             # Calculate total COGS
-            cogs_categories = self.config['cogs'].keys()
+            cogs_categories = [cat for cat in self.config['cogs'].keys() if cat != "_comment"]
             self.monthly_data.loc[month_idx, 'total_cogs'] = self.monthly_data.loc[month_idx, [f'cogs_{cat}' for cat in cogs_categories]].sum()
     
     def _calculate_marketing_expenses(self):
@@ -392,16 +406,21 @@ class AISaaSCostModel:
             arr = self.monthly_data.loc[month_idx, 'total_arr']
             year_number = self.monthly_data.loc[month_idx, 'year_number']
             
-            # Apply efficiency factor for the year
-            efficiency_factor = self.config['marketing_efficiency'].get(year_number, 1.0)
+            # Apply efficiency factor for the year (excluding _comment field)
+            efficiency_factor = 1.0  # Default
+            if str(year_number) in self.config['marketing_efficiency'] and str(year_number) != "_comment":
+                efficiency_factor = self.config['marketing_efficiency'][str(year_number)]
             
             # Calculate each marketing expense component
             for marketing_category, rate in self.config['marketing_expenses'].items():
+                # Skip _comment field
+                if marketing_category == "_comment":
+                    continue
                 monthly_expense = (arr * rate * efficiency_factor) / 12  # Convert to monthly
                 self.monthly_data.loc[month_idx, f'marketing_{marketing_category}'] = monthly_expense
             
             # Calculate total marketing expenses
-            marketing_categories = self.config['marketing_expenses'].keys()
+            marketing_categories = [cat for cat in self.config['marketing_expenses'].keys() if cat != "_comment"]
             self.monthly_data.loc[month_idx, 'total_marketing_expenses'] = self.monthly_data.loc[month_idx, [f'marketing_{cat}' for cat in marketing_categories]].sum()
     
     def _calculate_sales_expenses(self):
@@ -429,7 +448,7 @@ class AISaaSCostModel:
             self.monthly_data.loc[month_idx, 'sales_tools_and_enablement'] = monthly_tools
             
             # Calculate total sales expenses
-            sales_categories = self.config['sales_expenses'].keys()
+            sales_categories = [cat for cat in self.config['sales_expenses'].keys() if cat != "_comment"]
             self.monthly_data.loc[month_idx, 'total_sales_expenses'] = self.monthly_data.loc[month_idx, [f'sales_{cat}' for cat in sales_categories]].sum()
     
     def _calculate_r_and_d_expenses(self):
@@ -441,11 +460,14 @@ class AISaaSCostModel:
             
             # Calculate each R&D expense component
             for r_and_d_category, rate in self.config['r_and_d_expenses'].items():
+                # Skip _comment field
+                if r_and_d_category == "_comment":
+                    continue
                 monthly_expense = (arr * rate) / 12  # Convert to monthly
                 self.monthly_data.loc[month_idx, f'r_and_d_{r_and_d_category}'] = monthly_expense
             
             # Calculate total R&D expenses
-            r_and_d_categories = self.config['r_and_d_expenses'].keys()
+            r_and_d_categories = [cat for cat in self.config['r_and_d_expenses'].keys() if cat != "_comment"]
             self.monthly_data.loc[month_idx, 'total_r_and_d_expenses'] = self.monthly_data.loc[month_idx, [f'r_and_d_{cat}' for cat in r_and_d_categories]].sum()
     
     def _calculate_g_and_a_expenses(self):
@@ -456,7 +478,7 @@ class AISaaSCostModel:
             headcount = self.monthly_data.loc[month_idx, 'total_headcount']
             
             # Calculate each G&A expense component
-            g_and_a_config = self.config['g_and_a_expenses']
+            g_and_a_config = {k: v for k, v in self.config['g_and_a_expenses'].items() if k != "_comment"}
             
             # Office and facilities (base cost + per employee cost)
             office_base = g_and_a_config['office_and_facilities']
@@ -481,7 +503,9 @@ class AISaaSCostModel:
         """
         Add one-time expenses to specific months
         """
-        for item in self.config['one_time_expenses']['items']:
+        # Skip _comment field in one_time_expenses
+        one_time_config = {k: v for k, v in self.config['one_time_expenses'].items() if k != "_comment"}
+        for item in one_time_config['items']:
             month_idx, category, amount, description = item
             
             if month_idx < len(self.monthly_data):
@@ -1042,7 +1066,8 @@ class AISaaSCostModel:
         # Get min churn rate from the revenue model config
         if hasattr(revenue_model, 'config') and 'churn_rates' in revenue_model.config:
             # Find the minimum churn rate from all segments (as percentage)
-            min_churn_rate_percent = min(revenue_model.config['churn_rates'].values()) * 100
+            churn_values = [v for k, v in revenue_model.config['churn_rates'].items() if k != "_comment"]
+            min_churn_rate_percent = min(churn_values) * 100
         else:
             # Default value if not available
             min_churn_rate_percent = 8.0  # Default minimum churn (8%)

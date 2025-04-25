@@ -123,19 +123,24 @@ def run_baseline_model(initial_investment=2000000):
     # Convert string year keys to integers in s_curve config
     for segment in growth_model.config['segments']:
         growth_model.config['s_curve'][segment] = {
-            int(year): params for year, params in growth_model.config['s_curve'][segment].items()
+            int(year): params for year, params in growth_model.config['s_curve'][segment].items() 
+            if year != "_comment"
         }
     
     # Convert string month keys to integers in seasonality
     growth_model.config['seasonality'] = {
         int(month): factor for month, factor in growth_model.config['seasonality'].items()
+        if month != "_comment"
     }
     
     # Convert string year keys to integers in headcount growth factors
     for dept in cost_model.config['headcount']:
-        cost_model.config['headcount'][dept]['growth_factors'] = {
-            int(year): factor for year, factor in cost_model.config['headcount'][dept]['growth_factors'].items()
-        }
+        if dept != "_comment" and isinstance(cost_model.config['headcount'][dept], dict):
+            if 'growth_factors' in cost_model.config['headcount'][dept]:
+                cost_model.config['headcount'][dept]['growth_factors'] = {
+                    int(year): factor for year, factor in cost_model.config['headcount'][dept]['growth_factors'].items()
+                    if year != "_comment"
+                }
     
     # Run growth model
     growth_model.run_model()
@@ -159,7 +164,7 @@ def run_baseline_model(initial_investment=2000000):
     key_metrics = financial_model.get_key_metrics_table()
     
     # Create a summary table with the most important metrics
-    summary_columns = ['ARR ($M)', 'Revenue ($M)', 'EBITDA ($M)', 'EBITDA Margin (%)', 
+    summary_columns = ['ARR ($M)', 'Revenue ($M)', 'Total Expenses ($M)', 'EBITDA ($M)', 'EBITDA Margin (%)', 
                       'Customers', 'Headcount', 'CAC ($)', 'LTV ($)', 'LTV/CAC Ratio', 'Rule of 40 Score', 'Capital Position ($M)']
     
     # Print header
@@ -255,11 +260,13 @@ def run_growth_profile_model(profile_name, initial_investment=5000000):
     for segment in base_model.config['segments']:
         base_model.config['s_curve'][segment] = {
             int(year): params for year, params in base_model.config['s_curve'][segment].items()
+            if year != "_comment"
         }
     
     # Convert string month keys to integers in seasonality
     base_model.config['seasonality'] = {
         int(month): factor for month, factor in base_model.config['seasonality'].items()
+        if month != "_comment"
     }
     
     # Initialize cost model
@@ -267,9 +274,12 @@ def run_growth_profile_model(profile_name, initial_investment=5000000):
     
     # Convert string year keys to integers in headcount growth factors
     for dept in cost_model.config['headcount']:
-        cost_model.config['headcount'][dept]['growth_factors'] = {
-            int(year): factor for year, factor in cost_model.config['headcount'][dept]['growth_factors'].items()
-        }
+        if dept != "_comment" and isinstance(cost_model.config['headcount'][dept], dict):
+            if 'growth_factors' in cost_model.config['headcount'][dept]:
+                cost_model.config['headcount'][dept]['growth_factors'] = {
+                    int(year): factor for year, factor in cost_model.config['headcount'][dept]['growth_factors'].items()
+                    if year != "_comment"
+                }
     
     # Apply growth profile
     growth_model = base_model.apply_growth_profile(profile_name)
@@ -296,7 +306,7 @@ def run_growth_profile_model(profile_name, initial_investment=5000000):
     key_metrics = financial_model.get_key_metrics_table()
     
     # Create a summary table with the most important metrics
-    summary_columns = ['ARR ($M)', 'Revenue ($M)', 'EBITDA ($M)', 'EBITDA Margin (%)', 
+    summary_columns = ['ARR ($M)', 'Revenue ($M)', 'Total Expenses ($M)', 'EBITDA ($M)', 'EBITDA Margin (%)', 
                       'Customers', 'Headcount', 'CAC ($)', 'LTV ($)', 'LTV/CAC Ratio', 'Rule of 40 Score', 'Capital Position ($M)']
     
     # Print header

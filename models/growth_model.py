@@ -497,7 +497,7 @@ class SaaSGrowthModel:
         for i in range(len(self.annual_data)):
             # Customer growth rate
             if i == 0:
-                initial_total = sum(self.config['initial_customers'].values())
+                initial_total = sum(v for k, v in self.config['initial_customers'].items() if k != "_comment")
                 ending_total = self.annual_data.loc[i,
                                                     'total_ending_customers']
                 if initial_total > 0:
@@ -518,10 +518,12 @@ class SaaSGrowthModel:
 
             # ARR growth rate
             if i == 0:
+                # Calculate initial ARR excluding any _comment fields
                 initial_arr = sum(
                     self.config['initial_customers'][segment] *
                     self.config['initial_arr'][segment]
                     for segment in self.config['segments']
+                    if segment in self.config['initial_customers'] and segment in self.config['initial_arr']
                 )
                 ending_arr = self.annual_data.loc[i, 'total_ending_arr']
                 if initial_arr > 0:
@@ -1327,8 +1329,7 @@ class SaaSGrowthModel:
         summary['Churned Customers'] = self.annual_data['total_churned_customers'].values
         summary['Churn Rate (%)'] = (self.annual_data['total_churned_customers'] /
                                      self.annual_data['total_ending_customers'].shift(1).fillna(
-            sum(self.config['initial_customers'].values(
-            ))
+            sum(v for k, v in self.config['initial_customers'].items() if k != "_comment")
         ) * 100).values
 
         # Format the summary table

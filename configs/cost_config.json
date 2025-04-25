@@ -3,17 +3,20 @@
   "projection_months": 72,
 
   "cogs": {
+    "_comment": "All values as percentage of ARR (0.1 = 10% of ARR)",
     "cloud_hosting": 0.1,
     "customer_support": 0.05,
     "third_party_apis": 0.02,
-    "professional_services": 0.03
+    "professional_services": 0.0
   },
 
   "headcount": {
+    "_comment": "Headcount growth by department with annual growth factors and annual salaries",
     "engineering": {
-      "starting_count": 6,
+      "starting_count": 5,
       "growth_type": "step",
       "growth_factors": {
+        "_comment": "Annual multipliers (keys 1-6 represent years)",
         "1": 1.5,
         "2": 1.8,
         "3": 1.5,
@@ -21,10 +24,10 @@
         "5": 1.2,
         "6": 1.1
       },
-      "avg_salary": 150000
+      "avg_salary": 130000
     },
     "product": {
-      "starting_count": 2,
+      "starting_count": 1,
       "growth_type": "step",
       "growth_factors": {
         "1": 1.5,
@@ -34,7 +37,7 @@
         "5": 1.1,
         "6": 1.0
       },
-      "avg_salary": 160000
+      "avg_salary": 140000
     },
     "sales": {
       "starting_count": 2,
@@ -86,10 +89,10 @@
         "5": 1.1,
         "6": 1.0
       },
-      "avg_salary": 120000
+      "avg_salary": 100000
     },
     "compliance_experts": {
-      "starting_count": 2,
+      "starting_count": 1,
       "growth_type": "step",
       "growth_factors": {
         "1": 1.5,
@@ -99,26 +102,29 @@
         "5": 1.2,
         "6": 1.1
       },
-      "avg_salary": 170000
+      "avg_salary": 150000
     }
   },
 
   "salary": {
+    "_comment": "All rates as annual decimal percentages (0.05 = 5% per year)",
     "annual_increase": 0.05,
-    "benefits_multiplier": 1.18,
+    "benefits_multiplier": 1,
     "payroll_tax_rate": 0.20,
-    "bonus_rate": 0.15,
-    "equity_compensation": 0.10
+    "bonus_rate": 0.0,
+    "equity_compensation": 0.0
   },
 
   "marketing_expenses": {
+    "_comment": "All values as percentage of ARR (0.08 = 8% of ARR)",
     "paid_advertising": 0.08,
     "content_creation": 0.03,
     "events_and_pr": 0.10,
-    "partner_marketing": 0.06
+    "partner_marketing": 0.00
   },
 
   "marketing_efficiency": {
+    "_comment": "Annual efficiency multipliers (keys 1-6 represent years, values <1 improve efficiency)",
     "1": 1.0,
     "2": 0.85,
     "3": 0.75,
@@ -128,29 +134,32 @@
   },
 
   "sales_expenses": {
+    "_comment": "Commission as percentage of new ARR, tools as percentage of total ARR",
     "commission_rate": 0.18,
-    "tools_and_enablement": 0.06
+    "tools_and_enablement": 0.01
   },
 
   "r_and_d_expenses": {
-    "cloud_compute_for_training": 0.05,
+    "_comment": "All values as percentage of ARR (0.08 = 8% of ARR)",
+    "cloud_compute_for_training": 0.0,
     "research_tools_and_data": 0.08,
     "third_party_research": 0.06
   },
 
   "g_and_a_expenses": {
-    "office_and_facilities": 15000,
-    "per_employee_office_cost": 1200,
+    "_comment": "USD values in monthly amounts - both fixed costs and per-employee costs",
+    "office_and_facilities": 5000,
+    "per_employee_office_cost": 200,
     "software_and_tools": 3000,
-    "legal_and_accounting": 4000,
+    "legal_and_accounting": 1000,
     "insurance": 25000
   },
 
   "one_time_expenses": {
+    "_comment": "Format: [month number, expense name, amount in USD (one-time payment), description]",
     "items": [
-      [3, "AI Regulation Compliance Framework Development", 500000, "Expert consultation"],
-      [13, "ISO 27001 & AI Certification", 250000, "Certification costs"],
-      [25, "Major Platform Upgrade", 750000, "Technology transition"]
+      [3, "Varia", 50000, "Other expenes"],
+      [13, "Legal Lawusuit", 50000, "Lawsuit"]
     ]
   }
 }
