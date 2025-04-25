@@ -271,3 +271,7 @@ This financial model is proprietary and intended for internal use only.
 ## Acknowledgements
 
 Financial model developed by Claude AI from Anthropic.
+
+
+## Commands
+`python app.py --strategy european --breakeven-target 24 --revenue-target 36000000 --revenue-target-year 3 --initial-investment 5000000 --max-iterations 10`
