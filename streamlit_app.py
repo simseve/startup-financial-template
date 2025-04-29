@@ -35,6 +35,24 @@ def update_s_curve_params(config, segment, year, midpoint, steepness, max_monthl
 # Initialize session state for configurations
 if 'revenue_config' not in st.session_state:
     st.session_state.revenue_config, st.session_state.cost_config = load_configs()
+    
+    # Fix for the s_curve data structure - convert string keys to integers
+    # This matches the conversion done in app.py
+    if 's_curve' in st.session_state.revenue_config:
+        for segment in st.session_state.revenue_config['segments']:
+            if segment in st.session_state.revenue_config['s_curve']:
+                # Convert string year keys to integers
+                st.session_state.revenue_config['s_curve'][segment] = {
+                    int(year): params for year, params in st.session_state.revenue_config['s_curve'][segment].items()
+                    if year != "_comment"
+                }
+    
+    # Convert string month keys to integers in seasonality
+    if 'seasonality' in st.session_state.revenue_config:
+        st.session_state.revenue_config['seasonality'] = {
+            int(month): factor for month, factor in st.session_state.revenue_config['seasonality'].items()
+            if month != "_comment"
+        }
 
 if 'growth_model' not in st.session_state:
     st.session_state.growth_model = None
@@ -143,12 +161,13 @@ with st.sidebar:
         st.success(f"Model run complete with {strategy} strategy!")
 
 # Create tabs for different sections
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Results Overview",
     "Growth Configuration",
     "Cost Configuration",
     "Reports",
-    "Import/Export"
+    "Import/Export",
+    "S-Curve Visualization"
 ])
 
 # Tab 1: Results Overview
@@ -828,6 +847,743 @@ with tab5:
                         "Invalid cost configuration file. Missing required fields.")
             except Exception as e:
                 st.error(f"Error loading cost configuration: {str(e)}")
+
+# Tab 6: S-Curve Visualization
+with tab6:
+    st.header("S-Curve Parameter Visualization")
+    
+    # Create a function to visualize S-curves
+    def plot_s_curve(segment, year, midpoint, steepness, max_monthly):
+        """Plot the S-curve for a specific segment and year"""
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Create the month position array (0-11)
+        month_positions = np.arange(12)
+        
+        # Calculate the S-curve values
+        midpoint_idx = midpoint - 1  # Convert to 0-indexed
+        s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+        
+        # Apply seasonality if available
+        if 'seasonality' in st.session_state.revenue_config:
+            seasonality_factors = [st.session_state.revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+            seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+            
+            # Plot both the raw S-curve and the seasonality-adjusted curve
+            ax.plot(month_positions, s_curve_values, label='Raw S-Curve', linestyle='--')
+            ax.plot(month_positions, seasonal_values, label='With Seasonality', linewidth=2)
+            ax.bar(month_positions, seasonal_values, alpha=0.3, label='Monthly New Customers')
+        else:
+            # Just plot the raw S-curve
+            ax.plot(month_positions, s_curve_values, label='S-Curve', linewidth=2)
+            ax.bar(month_positions, s_curve_values, alpha=0.3, label='Monthly New Customers')
+        
+        # Formatting
+        ax.set_title(f'{segment} Year {year} S-Curve (Midpoint: {midpoint}, Steepness: {steepness}, Max: {max_monthly})')
+        ax.set_xlabel('Month of Year')
+        ax.set_ylabel('New Customers')
+        ax.set_xticks(month_positions)
+        ax.set_xticklabels(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        return fig
+    
+    # Create a function to plot all years for a segment
+    def plot_segment_years(segment, s_curve_params):
+        """Plot all years for a specific segment"""
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        month_positions = np.arange(12)
+        years = sorted([y for y in s_curve_params.keys()])
+        
+        for year in years:
+            # Get the parameters for this year
+            params = s_curve_params[year]
+            midpoint = params.get('midpoint', 6)
+            steepness = params.get('steepness', 0.5)
+            max_monthly = params.get('max_monthly', 2)
+            
+            # Calculate the S-curve values
+            midpoint_idx = midpoint - 1  # Convert to 0-indexed
+            s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+            
+            # Apply seasonality
+            seasonality_factors = [st.session_state.revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+            seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+            
+            # Plot the curve for this year
+            ax.plot(month_positions, seasonal_values, label=f'Year {year}', marker='o')
+        
+        # Formatting
+        ax.set_title(f'{segment} S-Curves Across All Years')
+        ax.set_xlabel('Month of Year')
+        ax.set_ylabel('New Customers')
+        ax.set_xticks(month_positions)
+        ax.set_xticklabels(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        return fig
+    
+    # Create a function to plot all segments for a specific year
+    def plot_year_segments(year, segments, s_curve_data):
+        """Plot all segments for a specific year"""
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        month_positions = np.arange(12)
+        
+        for segment in segments:
+            # Get the parameters for this segment
+            if segment in s_curve_data and year in s_curve_data[segment]:
+                params = s_curve_data[segment][year]
+                midpoint = params.get('midpoint', 6)
+                steepness = params.get('steepness', 0.5)
+                max_monthly = params.get('max_monthly', 2)
+                
+                # Calculate the S-curve values
+                midpoint_idx = midpoint - 1  # Convert to 0-indexed
+                s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+                
+                # Apply seasonality
+                seasonality_factors = [st.session_state.revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+                seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+                
+                # Plot the curve for this segment
+                ax.plot(month_positions, seasonal_values, label=segment, marker='o')
+        
+        # Formatting
+        ax.set_title(f'Year {year} S-Curves Across All Segments')
+        ax.set_xlabel('Month of Year')
+        ax.set_ylabel('New Customers')
+        ax.set_xticks(month_positions)
+        ax.set_xticklabels(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        return fig
+    
+    # Create a combined view with all segments and years
+    def plot_all_s_curves(s_curve_data, segments):
+        """Plot all S-curves in a grid layout"""
+        years = 6
+        fig, axs = plt.subplots(len(segments), years, figsize=(18, 10), sharex=True)
+        
+        month_positions = np.arange(12)
+        
+        for i, segment in enumerate(segments):
+            for j in range(years):
+                year = j + 1
+                ax = axs[i, j]
+                
+                # Get the parameters for this segment and year
+                if segment in s_curve_data and year in s_curve_data[segment]:
+                    params = s_curve_data[segment][year]
+                    midpoint = params.get('midpoint', 6)
+                    steepness = params.get('steepness', 0.5)
+                    max_monthly = params.get('max_monthly', 2)
+                    
+                    # Calculate the S-curve values
+                    midpoint_idx = midpoint - 1  # Convert to 0-indexed
+                    s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+                    
+                    # Apply seasonality
+                    seasonality_factors = [st.session_state.revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+                    seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+                    
+                    # Plot the curve
+                    ax.plot(month_positions, seasonal_values)
+                    ax.fill_between(month_positions, seasonal_values, alpha=0.3)
+                    
+                    # Add annotations
+                    ax.text(0.5, 0.9, f"Mid: {midpoint}", transform=ax.transAxes, ha='center', fontsize=8)
+                    ax.text(0.5, 0.8, f"Steep: {steepness}", transform=ax.transAxes, ha='center', fontsize=8)
+                    ax.text(0.5, 0.7, f"Max: {max_monthly}", transform=ax.transAxes, ha='center', fontsize=8)
+                
+                # Set titles only for top row and left column
+                if i == 0:
+                    ax.set_title(f'Year {year}', fontsize=10)
+                if j == 0:
+                    ax.set_ylabel(segment, fontsize=10)
+                
+                # Set xticks only for bottom row
+                if i == len(segments) - 1:
+                    ax.set_xticks([0, 6, 11])
+                    ax.set_xticklabels(['Jan', 'Jul', 'Dec'], fontsize=8)
+                
+                ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+    
+    # Display visualization options
+    viz_option = st.radio(
+        "Select Visualization Type",
+        ["Individual S-Curves", "Segment Comparison", "Year Comparison", "All S-Curves Grid"]
+    )
+    
+    revenue_config = st.session_state.revenue_config
+    
+    # Debug: Print S-curve parameters to see what's actually loaded
+    st.write("### Loaded S-Curve Parameters")
+    if 's_curve' in revenue_config:
+        for segment in revenue_config['segments']:
+            if segment in revenue_config['s_curve']:
+                st.write(f"**{segment}**")
+                for year in range(1, 7):
+                    if year in revenue_config['s_curve'][segment]:
+                        params = revenue_config['s_curve'][segment][year]
+                        st.write(f"Year {year}: Midpoint={params.get('midpoint', 'N/A')}, "
+                                f"Steepness={params.get('steepness', 'N/A')}, "
+                                f"Max Monthly={params.get('max_monthly', 'N/A')}")
+    
+    if viz_option == "Individual S-Curves":
+        # Select segment and year
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            segment = st.selectbox("Select Segment", revenue_config['segments'])
+        
+        with col2:
+            year = st.selectbox("Select Year", list(range(1, 7)))
+        
+        # Get the S-curve parameters for the selected segment and year
+        if segment in revenue_config['s_curve'] and year in revenue_config['s_curve'][segment]:
+            params = revenue_config['s_curve'][segment][year]
+            midpoint = params.get('midpoint', 6)
+            steepness = params.get('steepness', 0.5)
+            max_monthly = params.get('max_monthly', 2)
+            
+            # Display the parameters
+            st.write(f"### S-Curve Parameters for {segment} in Year {year}")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Midpoint", midpoint)
+            col2.metric("Steepness", steepness)
+            col3.metric("Max Monthly", max_monthly)
+            
+            # Add parameter explanations
+            st.write("""
+            **Parameter Explanation:**
+            - **Midpoint:** Month (1-12) where the growth curve reaches its inflection point
+            - **Steepness:** Controls how rapidly growth accelerates/decelerates (higher = steeper curve)
+            - **Max Monthly:** Maximum number of new customers that can be acquired per month
+            """)
+            
+            # Interactive parameters
+            st.write("### Interactive Parameter Adjustment")
+            st.write("Adjust the parameters to see how they affect the S-curve shape:")
+            
+            int_col1, int_col2, int_col3 = st.columns(3)
+            with int_col1:
+                interactive_midpoint = st.slider("Midpoint", 1, 12, midpoint)
+            with int_col2:
+                interactive_steepness = st.slider("Steepness", 0.05, 2.0, float(steepness), 0.05)
+            with int_col3:
+                interactive_max = st.slider("Max Monthly", 1, max(50, max_monthly*2), max_monthly)
+            
+            # Show both the original and interactive curves
+            fig, ax = plt.subplots(figsize=(12, 8))
+            
+            # Create the month position array (0-11)
+            month_positions = np.arange(12)
+            month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            
+            # Original S-curve values
+            midpoint_idx = midpoint - 1  # Convert to 0-indexed
+            s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+            
+            # Interactive S-curve values
+            interactive_midpoint_idx = interactive_midpoint - 1  # Convert to 0-indexed
+            interactive_s_curve_values = [interactive_max / (1 + np.exp(-interactive_steepness * (m - interactive_midpoint_idx))) 
+                                         for m in month_positions]
+            
+            # Apply seasonality to both
+            seasonality_factors = [revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+            seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+            interactive_seasonal_values = [s * f for s, f in zip(interactive_s_curve_values, seasonality_factors)]
+            
+            # Calculate annual totals
+            original_annual = sum(seasonal_values)
+            interactive_annual = sum(interactive_seasonal_values)
+            
+            # Plot the original curve
+            ax.plot(month_positions, s_curve_values, label=f'Original S-Curve (Annual: {original_annual:.1f})', 
+                   linestyle='--', alpha=0.7, color='blue')
+            ax.plot(month_positions, seasonal_values, label=f'Original with Seasonality', 
+                   linewidth=2, alpha=0.7, color='darkblue')
+            
+            # Plot the interactive curve
+            ax.plot(month_positions, interactive_s_curve_values, label=f'Interactive S-Curve (Annual: {interactive_annual:.1f})', 
+                   linestyle='--', alpha=0.7, color='red')
+            ax.plot(month_positions, interactive_seasonal_values, label=f'Interactive with Seasonality', 
+                   linewidth=2, alpha=0.7, color='darkred')
+            
+            # Plot the bar chart for the original curve (seasonal)
+            ax.bar(month_positions, seasonal_values, alpha=0.1, color='blue', width=0.4, 
+                  align='edge', label=None)
+            
+            # Plot the bar chart for the interactive curve (seasonal)
+            ax.bar(month_positions, interactive_seasonal_values, alpha=0.1, color='red', width=-0.4, 
+                  align='edge', label=None)
+            
+            # Formatting
+            ax.set_title(f'{segment} Year {year} S-Curve Comparison', fontsize=16)
+            ax.set_xlabel('Month of Year', fontsize=14)
+            ax.set_ylabel('New Customers', fontsize=14)
+            ax.set_xticks(month_positions)
+            ax.set_xticklabels(month_labels)
+            ax.legend(fontsize=12)
+            ax.grid(True, alpha=0.3)
+            
+            st.pyplot(fig)
+            
+            # Visualization explanation
+            st.write("""
+            ### Understanding the S-Curve
+            
+            The S-curve models how customer acquisition grows over time within a year:
+            
+            - **Early phase:** Slow initial growth at the beginning of the curve
+            - **Middle phase:** Rapid growth around the midpoint (inflection point)
+            - **Later phase:** Leveling off as the market segment becomes saturated
+            
+            **Seasonality factors** (shown in the curve with solid lines) adjust the base S-curve to account for seasonal variations in customer acquisition.
+            
+            **Total annual customers** is the sum of all monthly values with seasonality applied.
+            """)
+            
+            # Also show the original S-curve
+            st.write("### Original S-Curve Visualization")
+            fig = plot_s_curve(segment, year, midpoint, steepness, max_monthly)
+            st.pyplot(fig)
+        else:
+            st.warning(f"No S-curve parameters found for {segment} in Year {year}")
+    
+    elif viz_option == "Segment Comparison":
+        # Select year
+        year = st.selectbox("Select Year", list(range(1, 7)))
+        
+        st.write(f"### Segment Comparison for Year {year}")
+        st.write("Compare how different customer segments grow within the same year")
+        
+        # Create enhanced visualization
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 12), gridspec_kw={'height_ratios': [3, 1]})
+        
+        month_positions = np.arange(12)
+        month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        segments = revenue_config['segments']
+        
+        # Color map for segments
+        colors = plt.cm.tab10(np.linspace(0, 1, len(segments)))
+        
+        # Annual totals and parameters
+        segment_totals = []
+        segment_params = []
+        
+        # Plot each segment
+        for i, segment in enumerate(segments):
+            if segment in revenue_config['s_curve'] and year in revenue_config['s_curve'][segment]:
+                # Get parameters
+                params = revenue_config['s_curve'][segment][year]
+                midpoint = params.get('midpoint', 6)
+                steepness = params.get('steepness', 0.5)
+                max_monthly = params.get('max_monthly', 2)
+                
+                # Save parameters for display
+                segment_params.append((segment, midpoint, steepness, max_monthly))
+                
+                # Calculate values
+                midpoint_idx = midpoint - 1
+                s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+                
+                # Apply seasonality
+                seasonality_factors = [revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+                seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+                
+                # Calculate annual total
+                annual_total = sum(seasonal_values)
+                segment_totals.append(annual_total)
+                
+                # Plot the curve
+                ax1.plot(month_positions, seasonal_values, 
+                       label=f'{segment} (Total: {annual_total:.1f})', 
+                       color=colors[i], linewidth=2.5, marker='o')
+                
+                # Add light fill under the curve
+                ax1.fill_between(month_positions, seasonal_values, alpha=0.15, color=colors[i])
+        
+        # Plot cumulative total line
+        if segment_totals:
+            cumulative_values = []
+            for m in month_positions:
+                monthly_sum = 0
+                for i, segment in enumerate(segments):
+                    if segment in revenue_config['s_curve'] and year in revenue_config['s_curve'][segment]:
+                        params = revenue_config['s_curve'][segment][year]
+                        midpoint = params.get('midpoint', 6)
+                        steepness = params.get('steepness', 0.5)
+                        max_monthly = params.get('max_monthly', 2)
+                        
+                        # Calculate this segment's contribution to this month
+                        midpoint_idx = midpoint - 1
+                        s_value = max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx)))
+                        monthly_sum += s_value * revenue_config['seasonality'].get(m+1, 1.0)
+                
+                cumulative_values.append(monthly_sum)
+            
+            # Plot the combined line
+            ax1.plot(month_positions, cumulative_values, 
+                   label=f'All Segments (Total: {sum(cumulative_values):.1f})', 
+                   color='black', linewidth=3, linestyle='-', marker='s')
+        
+        # Formatting for top plot
+        ax1.set_title(f'Monthly New Customer Acquisition by Segment - Year {year}', fontsize=16)
+        ax1.set_xlabel('Month of Year', fontsize=14)
+        ax1.set_ylabel('New Customers per Month', fontsize=14)
+        ax1.set_xticks(month_positions)
+        ax1.set_xticklabels(month_labels)
+        ax1.legend(fontsize=12)
+        ax1.grid(True, alpha=0.3)
+        
+        # Create the stacked bar chart for bottom plot
+        segment_annual_data = {}
+        for i, segment in enumerate(segments):
+            if segment in revenue_config['s_curve'] and year in revenue_config['s_curve'][segment]:
+                by_month_values = []
+                params = revenue_config['s_curve'][segment][year]
+                midpoint = params.get('midpoint', 6)
+                steepness = params.get('steepness', 0.5)
+                max_monthly = params.get('max_monthly', 2)
+                
+                for m in range(12):
+                    midpoint_idx = midpoint - 1
+                    s_value = max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx)))
+                    seasonal_value = s_value * revenue_config['seasonality'].get(m+1, 1.0)
+                    by_month_values.append(seasonal_value)
+                
+                segment_annual_data[segment] = by_month_values
+        
+        # Create bottom stacked bar chart
+        bottom = np.zeros(12)
+        for i, segment in enumerate(segments):
+            if segment in segment_annual_data:
+                ax2.bar(month_positions, segment_annual_data[segment], bottom=bottom, 
+                       label=segment, color=colors[i], alpha=0.7)
+                bottom += np.array(segment_annual_data[segment])
+        
+        # Formatting for bottom plot
+        ax2.set_title(f'Monthly Customer Acquisition Composition - Year {year}', fontsize=14)
+        ax2.set_xlabel('Month', fontsize=12)
+        ax2.set_ylabel('New Customers', fontsize=12)
+        ax2.set_xticks(month_positions)
+        ax2.set_xticklabels(month_labels)
+        ax2.legend(fontsize=10, loc='upper right')
+        ax2.grid(True, axis='y', alpha=0.3)
+        
+        plt.tight_layout()
+        st.pyplot(fig)
+        
+        # Display the parameters table
+        st.write(f"### S-Curve Parameters for Year {year}")
+        
+        param_data = {
+            'Segment': [p[0] for p in segment_params],
+            'Midpoint': [p[1] for p in segment_params],
+            'Steepness': [p[2] for p in segment_params],
+            'Max Monthly': [p[3] for p in segment_params],
+            'Annual Total': segment_totals
+        }
+        
+        param_df = pd.DataFrame(param_data)
+        st.dataframe(param_df, hide_index=True)
+        
+        # Calculate the relative contribution of each segment
+        if sum(segment_totals) > 0:
+            st.write("### Segment Contribution Analysis")
+            
+            # Create pie chart
+            fig, ax = plt.subplots(figsize=(10, 7))
+            wedges, texts, autotexts = ax.pie(
+                segment_totals, 
+                labels=[p[0] for p in segment_params],
+                autopct='%1.1f%%',
+                explode=[0.05] * len(segment_totals),
+                colors=colors[:len(segment_totals)],
+                shadow=True,
+                startangle=90
+            )
+            
+            # Style the text and percentages
+            for text in texts:
+                text.set_fontsize(12)
+            for autotext in autotexts:
+                autotext.set_fontsize(12)
+                autotext.set_fontweight('bold')
+                
+            ax.set_title(f'Segment Contribution to New Customers - Year {year}', fontsize=16)
+            st.pyplot(fig)
+        
+        # Original visualization
+        st.write("### Original Segment Comparison")
+        fig = plot_year_segments(year, revenue_config['segments'], revenue_config['s_curve'])
+        st.pyplot(fig)
+    
+    elif viz_option == "Year Comparison":
+        # Select segment
+        segment = st.selectbox("Select Segment", revenue_config['segments'])
+        
+        # Plot all years for the selected segment
+        if segment in revenue_config['s_curve']:
+            st.write("### Multi-Year Growth Evolution")
+            st.write(f"Visualizing how the growth curve for **{segment}** evolves across years")
+            
+            # Create an enhanced visualization
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 12), gridspec_kw={'height_ratios': [3, 1]})
+            
+            month_positions = np.arange(12)
+            month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            years = sorted([y for y in revenue_config['s_curve'][segment].keys()])
+            
+            # Color map for years
+            colors = plt.cm.viridis(np.linspace(0, 1, len(years)))
+            
+            # Annual totals and parameters
+            annual_totals = []
+            year_params = []
+            
+            # Plot each year
+            for i, year in enumerate(years):
+                # Get the parameters
+                params = revenue_config['s_curve'][segment][year]
+                midpoint = params.get('midpoint', 6)
+                steepness = params.get('steepness', 0.5)
+                max_monthly = params.get('max_monthly', 2)
+                
+                # Save parameters for display
+                year_params.append((year, midpoint, steepness, max_monthly))
+                
+                # Calculate values
+                midpoint_idx = midpoint - 1
+                s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+                
+                # Apply seasonality
+                seasonality_factors = [revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+                seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+                
+                # Calculate annual total
+                annual_total = sum(seasonal_values)
+                annual_totals.append(annual_total)
+                
+                # Plot the curve
+                ax1.plot(month_positions, seasonal_values, 
+                       label=f'Year {year} (Total: {annual_total:.1f})', 
+                       color=colors[i], linewidth=2.5, marker='o')
+                
+                # Add light fill under the curve
+                ax1.fill_between(month_positions, seasonal_values, alpha=0.1, color=colors[i])
+            
+            # Formatting for top plot
+            ax1.set_title(f'Monthly New Customer Acquisition for {segment} - Year-by-Year Comparison', fontsize=16)
+            ax1.set_xlabel('Month of Year', fontsize=14)
+            ax1.set_ylabel('New Customers per Month', fontsize=14)
+            ax1.set_xticks(month_positions)
+            ax1.set_xticklabels(month_labels)
+            ax1.legend(fontsize=12)
+            ax1.grid(True, alpha=0.3)
+            
+            # Plot the annual totals in the bottom subplot
+            bars = ax2.bar(years, annual_totals, color=colors, alpha=0.7)
+            
+            # Add value labels on bars
+            for bar, value in zip(bars, annual_totals):
+                ax2.text(bar.get_x() + bar.get_width()/2, value + 0.5, 
+                        f'{value:.1f}', ha='center', va='bottom', fontsize=12)
+            
+            # Formatting for bottom plot
+            ax2.set_title(f'Total Annual New Customers - {segment}', fontsize=14)
+            ax2.set_xlabel('Year', fontsize=12)
+            ax2.set_ylabel('Total New Customers', fontsize=12)
+            ax2.set_xticks(years)
+            ax2.set_xticklabels([f'Year {y}' for y in years])
+            ax2.grid(True, axis='y', alpha=0.3)
+            
+            plt.tight_layout()
+            st.pyplot(fig)
+            
+            # Display the parameters table
+            st.write("### S-Curve Parameters by Year")
+            
+            param_data = {
+                'Year': [f'Year {p[0]}' for p in year_params],
+                'Midpoint': [p[1] for p in year_params],
+                'Steepness': [p[2] for p in year_params],
+                'Max Monthly': [p[3] for p in year_params],
+                'Annual Total': annual_totals
+            }
+            
+            param_df = pd.DataFrame(param_data)
+            st.dataframe(param_df, hide_index=True)
+            
+            # Show original visualization as well
+            st.write("### Original Year Comparison")
+            fig = plot_segment_years(segment, revenue_config['s_curve'][segment])
+            st.pyplot(fig)
+        else:
+            st.warning(f"No S-curve parameters found for {segment}")
+    
+    elif viz_option == "All S-Curves Grid":
+        st.write("### Complete S-Curve Overview")
+        st.write("Comprehensive visualization of all segments and years in a single view")
+        
+        # Enhanced S-curve grid
+        segments = revenue_config['segments']
+        years = list(range(1, 7))
+        
+        # Calculate the total numbers for the heatmap
+        heatmap_data = np.zeros((len(segments), len(years)))
+        
+        for i, segment in enumerate(segments):
+            if segment in revenue_config['s_curve']:
+                for j, year in enumerate(years):
+                    if year in revenue_config['s_curve'][segment]:
+                        params = revenue_config['s_curve'][segment][year]
+                        midpoint = params.get('midpoint', 6)
+                        steepness = params.get('steepness', 0.5)
+                        max_monthly = params.get('max_monthly', 2)
+                        
+                        # Calculate monthly values
+                        month_positions = np.arange(12)
+                        midpoint_idx = midpoint - 1
+                        s_curve_values = [max_monthly / (1 + np.exp(-steepness * (m - midpoint_idx))) for m in month_positions]
+                        
+                        # Apply seasonality
+                        seasonality_factors = [revenue_config['seasonality'].get(m+1, 1.0) for m in month_positions]
+                        seasonal_values = [s * f for s, f in zip(s_curve_values, seasonality_factors)]
+                        
+                        # Calculate annual total
+                        annual_total = sum(seasonal_values)
+                        heatmap_data[i, j] = annual_total
+        
+        # Create a heatmap visualization of annual totals
+        fig, ax = plt.subplots(figsize=(12, 7))
+        im = ax.imshow(heatmap_data, cmap='YlOrRd')
+        
+        # Add labels
+        ax.set_xticks(np.arange(len(years)))
+        ax.set_yticks(np.arange(len(segments)))
+        ax.set_xticklabels([f'Year {y}' for y in years])
+        ax.set_yticklabels(segments)
+        
+        # Rotate the x-axis labels
+        plt.setp(ax.get_xticklabels(), rotation=0, ha="center", rotation_mode="anchor")
+        
+        # Add value annotations
+        for i in range(len(segments)):
+            for j in range(len(years)):
+                text = ax.text(j, i, f"{heatmap_data[i, j]:.1f}",
+                               ha="center", va="center", color="black" if heatmap_data[i, j] < np.max(heatmap_data)*0.7 else "white")
+        
+        # Add title and colorbar
+        ax.set_title("Annual New Customer Acquisition by Segment and Year")
+        plt.colorbar(im, ax=ax, label="New Customers per Year")
+        
+        fig.tight_layout()
+        st.pyplot(fig)
+        
+        # Cumulative totals over 6 years
+        cumulative_by_segment = np.sum(heatmap_data, axis=1)
+        cumulative_by_year = np.sum(heatmap_data, axis=0)
+        
+        # Create summary table
+        summary_data = {
+            'Segment': segments,
+            'Total New Customers (6 Years)': cumulative_by_segment,
+            'Percentage of Total': [val/np.sum(cumulative_by_segment)*100 for val in cumulative_by_segment]
+        }
+        
+        summary_df = pd.DataFrame(summary_data)
+        
+        st.write("### Summary by Segment (6-Year Total)")
+        st.dataframe(summary_df, hide_index=True, use_container_width=True)
+        
+        # Create bar chart of segment totals
+        fig, ax = plt.subplots(figsize=(10, 6))
+        bars = ax.bar(segments, cumulative_by_segment, color=plt.cm.tab10(np.linspace(0, 1, len(segments))))
+        
+        # Add data labels on top of bars
+        for bar, value in zip(bars, cumulative_by_segment):
+            ax.text(bar.get_x() + bar.get_width()/2, value + 1, 
+                   f'{value:.1f}', ha='center', va='bottom', fontsize=12)
+        
+        ax.set_title('Total New Customers by Segment (6-Year Period)', fontsize=16)
+        ax.set_ylabel('Total New Customers', fontsize=14)
+        ax.grid(True, axis='y', alpha=0.3)
+        
+        st.pyplot(fig)
+        
+        # Year-by-year growth chart
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(years, cumulative_by_year, marker='o', linewidth=2, markersize=10, color='darkblue')
+        
+        # Add data labels above points
+        for x, y in zip(years, cumulative_by_year):
+            ax.text(x, y + 2, f'{y:.1f}', ha='center', va='bottom', fontsize=12)
+        
+        ax.set_title('Total New Customers by Year (All Segments)', fontsize=16)
+        ax.set_xlabel('Year', fontsize=14)
+        ax.set_ylabel('New Customers', fontsize=14)
+        ax.set_xticks(years)
+        ax.set_xticklabels([f'Year {y}' for y in years])
+        ax.grid(True, alpha=0.3)
+        
+        # Calculate year-over-year growth rates
+        growth_rates = []
+        for i in range(1, len(cumulative_by_year)):
+            if cumulative_by_year[i-1] > 0:
+                growth_rate = (cumulative_by_year[i] / cumulative_by_year[i-1] - 1) * 100
+                growth_rates.append(growth_rate)
+            else:
+                growth_rates.append(0)
+        
+        # Add growth rate annotations
+        for i, rate in enumerate(growth_rates):
+            year = years[i+1]
+            y_pos = cumulative_by_year[i+1]
+            ax.text(year, y_pos - 5, f"{rate:.1f}%", ha='center', va='top', 
+                    fontsize=10, bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
+        
+        st.pyplot(fig)
+        
+        # Original grid visualization
+        st.write("### Original S-Curve Grid")
+        fig = plot_all_s_curves(revenue_config['s_curve'], revenue_config['segments'])
+        st.pyplot(fig)
+    
+    # Add seasonality visualization
+    st.write("### Monthly Seasonality Factors")
+    seasonality = revenue_config['seasonality']
+    
+    # Plot seasonality
+    fig, ax = plt.subplots(figsize=(12, 6))
+    months = list(range(1, 13))
+    seasonality_values = [seasonality.get(m, 1.0) for m in months]
+    
+    ax.bar(months, seasonality_values)
+    ax.axhline(y=1.0, color='red', linestyle='--', label='Baseline (1.0)')
+    
+    # Formatting
+    ax.set_title('Monthly Seasonality Factors')
+    ax.set_xlabel('Month')
+    ax.set_ylabel('Seasonality Factor')
+    ax.set_xticks(months)
+    ax.set_xticklabels(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    
+    for i, v in enumerate(seasonality_values):
+        ax.text(i+1, v + 0.05, f"{v:.1f}", ha='center')
+    
+    st.pyplot(fig)
 
 # App footer
 st.markdown("---")
