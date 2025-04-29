@@ -266,11 +266,11 @@ The model uses the following approach to calculate key unit economics metrics:
 
 ## License
 
-This financial model is proprietary and intended for internal use only.
+This financial model is distributed under GNU license.
 
-## Acknowledgements
-
-Financial model developed by Claude AI from Anthropic.
+## Contributors
+- [Simone Severini](https://github.com/simseve), Owner
+- [Elena Maran](https://github.com/Eleninas84), Contributor
 
 
 ## Commands
