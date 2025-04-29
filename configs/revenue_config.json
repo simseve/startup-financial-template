@@ -12,9 +12,9 @@
 
   "initial_customers": {
     "_comment": "Number of customers at start date",
-    "Enterprise": 2,
+    "Enterprise": 1,
     "Mid-Market": 1,
-    "SMB": 6
+    "SMB": 2
   },
 
   "contract_length": {

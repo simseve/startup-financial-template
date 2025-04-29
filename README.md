@@ -1,4 +1,4 @@
-# AI GRC Financial Model
+# AI SaaS Startup Financial Model
 
 A comprehensive financial modeling tool for AI Governance, Risk, and Compliance (GRC) SaaS businesses. This model is designed to project financial performance from 2025 onwards, with special attention to the impact of AI regulations beginning in 2026.
 
