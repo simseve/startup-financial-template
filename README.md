@@ -266,11 +266,12 @@ The model uses the following approach to calculate key unit economics metrics:
 
 ## License
 
-This financial model is distributed under GNU license.
+This financial model is distributed under GPL-3.0 license.
 
 ## Contributors
 - [Simone Severini](https://github.com/simseve), Owner
 - [Elena Maran](https://github.com/Eleninas84), Contributor
+- Massimo Pellegrino, Contributor
 
 
 ## Commands
