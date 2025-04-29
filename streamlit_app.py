@@ -16,7 +16,7 @@ from app import (
 )
 
 st.set_page_config(
-    page_title="2025 Financial Model",
+    page_title="2025 AI SaaS Financial Model",
     page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -1587,4 +1587,4 @@ with tab6:
 
 # App footer
 st.markdown("---")
-st.caption("2025 Financial Model Dashboard - Run with `python streamlit_app.py`")
+st.caption("2025 AI SaaS Financial Model Dashboard - Run with `python streamlit_app.py`")
