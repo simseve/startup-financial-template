@@ -118,7 +118,7 @@ with st.sidebar:
             "Revenue Target Year",
             min_value=1,
             max_value=6,
-            value=5,
+            value=3,
             help="Year to achieve annual revenue target (1-6)"
         )
 
