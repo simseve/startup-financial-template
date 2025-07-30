@@ -534,8 +534,7 @@ class SaaSFinancialModel:
 
         # Set up data
         years = self.annual_data['year'].values
-        years_str = [str(self.annual_data['year_start_date'].iloc[i].year)
-                     for i in range(len(years))]
+        years_str = [f'Year {year}' for year in years]
         # Convert to millions
         revenue = self.annual_data['annual_revenue'].values / 1000000
         # Convert to millions
@@ -671,8 +670,7 @@ class SaaSFinancialModel:
 
         # Set up data
         years = self.annual_data['year'].values
-        years_str = [str(self.annual_data['year_start_date'].iloc[i].year)
-                     for i in range(len(years))]
+        years_str = [f'Year {year}' for year in years]
         cac = self.annual_data['annual_avg_cac'].values
         ltv = self.annual_data['annual_avg_ltv'].values
         ltv_cac_ratio = self.annual_data['annual_ltv_cac_ratio'].values
